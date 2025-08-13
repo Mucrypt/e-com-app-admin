@@ -32,6 +32,66 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local*
+.env.development*
+.env.production*
+.env.test*
+
+# Supabase secrets and artifacts
+src/supabase/*.ts
+src/supabase/*.js
+src/supabase/*.json
+
+# Database files
+*.sqlite
+*.db
+*.db-journal
+
+# Shop SQL and data scripts
+src/database/*.sql
+src/database/*.js
+src/database/*.ts
+
+# Sensitive config files
+components.json
+
+# Build and cache
+.next/
+out/
+build/
+cache/
+static/
+types/
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Node modules
+node_modules/
+.pnp
+.pnp.*
+yarn/*
+!yarn/patches
+!yarn/plugins
+!yarn/releases
+!yarn/versions
+
+# Coverage
+coverage/
 
 # vercel
 .vercel

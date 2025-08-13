@@ -1,0 +1,120 @@
+/* src/components/common/LoadingSpinner.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #f9fafb, #f3f4f6);
+}
+
+.spinnerContainer {
+  position: relative;
+  height: 6rem;
+  width: 6rem;
+  margin-bottom: 1.5rem;
+}
+
+.spinnerLayer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 0.5rem solid;
+}
+
+.spinnerSlow {
+  border-color: #8b5cf6;
+  border-top-color: transparent;
+  animation: spin 3s linear infinite;
+}
+
+.spinnerMedium {
+  border-color: #3b82f6;
+  border-right-color: transparent;
+  animation: spin 2s linear infinite;
+  animation-delay: 0.1s;
+}
+
+.spinnerFast {
+  border-color: #ec4899;
+  border-bottom-color: transparent;
+  animation: spin 1s linear infinite;
+  animation-delay: 0.2s;
+}
+
+.spinnerSlower {
+  border-color: #14b8a6;
+  border-left-color: transparent;
+  animation: spin 4s linear infinite;
+  animation-delay: 0.3s;
+}
+
+.centerDotContainer {
+  position: absolute;
+  inset: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centerDot {
+  height: 2rem;
+  width: 2rem;
+  background: linear-gradient(to right, #8b5cf6, #3b82f6);
+  border-radius: 50%;
+}
+
+.animatedText {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6, #ec4899);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-x 5s ease infinite;
+}
+
+.dotsContainer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bounceDot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 50%;
+}
+
+.bounce1 {
+  background-color: #8b5cf6;
+  animation: bounce 1.5s infinite;
+  animation-delay: 0.1s;
+}
+
+.bounce2 {
+  background-color: #3b82f6;
+  animation: bounce 1.5s infinite;
+  animation-delay: 0.2s;
+}
+
+.bounce3 {
+  background-color: #ec4899;
+  animation: bounce 1.5s infinite;
+  animation-delay: 0.3s;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}

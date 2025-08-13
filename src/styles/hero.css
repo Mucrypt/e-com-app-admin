@@ -1,0 +1,69 @@
+/* Hero.css */
+.hero-container {
+  @apply container mx-auto px-0 md:px-4 rounded;
+}
+
+.hero-slider-container {
+  @apply h-48 md:h-96 w-full relative overflow-hidden bg-gray-200;
+}
+
+.hero-debug-overlay {
+  @apply absolute inset-0 bg-red-500/10 z-0;
+}
+
+.hero-slider-wrapper {
+  @apply h-full w-full relative;
+}
+
+.hero-desktop-slider {
+  @apply hidden md:block h-full w-full overflow-hidden;
+}
+
+.hero-mobile-slider {
+  @apply block md:hidden h-full w-full overflow-hidden;
+}
+
+.hero-slider-row {
+  @apply flex h-full transition-transform duration-500 ease-in-out;
+  transform: translateX(calc(-100% * var(--current-slide)));
+}
+
+.hero-slide {
+  @apply w-full h-full flex-shrink-0 relative;
+}
+
+.hero-image {
+  @apply object-cover;
+}
+
+.hero-navigation {
+  @apply absolute z-20 inset-0 flex items-center justify-between px-4 pointer-events-none;
+}
+
+.hero-nav-button {
+  @apply pointer-events-auto p-2 rounded-full bg-black/30 text-white hover:bg-black/50 transition-colors;
+}
+
+.hero-nav-icon {
+  @apply text-xl;
+}
+
+.hero-text-overlay {
+  @apply absolute z-10 inset-0 flex flex-col items-center justify-center bg-black/20 px-4;
+}
+
+.hero-text-content {
+  @apply text-center text-white space-y-2 md:space-y-4;
+}
+
+.hero-text-content h1 {
+  @apply text-xl md:text-5xl font-bold tracking-wide;
+}
+
+.hero-text-content p {
+  @apply text-sm md:text-xl max-w-2xl;
+}
+
+.hero-cta-button {
+  @apply inline-block px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition;
+}

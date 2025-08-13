@@ -1,0 +1,9 @@
+/* CategoryColor.module.css */
+.colorIndicator {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  display: inline-block;
+  background-color: var(--category-color, #ccc);
+}
