@@ -17,35 +17,38 @@ import Image from 'next/image'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCategories } from '@/hooks/useCategories'
+import { useProducts } from '@/hooks/useProducts'
 
-interface Category {
+interface Product {
   id: string
   name: string
   description?: string
-  color?: string
-  icon?: string
+  price: number
   image_url?: string
-  sort_order: number
+  category_id?: string
   is_active: boolean
   created_at: string
   updated_at: string
-  parent_id?: string | null
+  stock?: number
+  sku?: string
+  color?: string
+  size?: string
+  brand?: string
   meta_title?: string
   meta_description?: string
   seo_keywords?: string
 }
 
-interface UseCategoriesResult {
-  categories: Category[]
+interface UseProductsResult {
+  products: Product[]
   loading: boolean
   error: string | null
   refresh?: () => void
 }
 
-export default function SuperAdminCategoryPage() {
-  const { categories, loading, error, refresh } =
-    useCategories() as UseCategoriesResult
+export default function SuperAdminProductPage() {
+  const { products, loading, error, refresh } =
+    useProducts() as UseProductsResult
 
   // State management
   const [search, setSearch] = useState('')
@@ -60,21 +63,23 @@ export default function SuperAdminCategoryPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Filter and sort categories
-  const filteredCategories = categories
+  // Filter and sort products
+  const filteredProducts = products
     .filter(
-      (cat: Category) =>
-        cat.name.toLowerCase().includes(search.toLowerCase()) ||
-        (cat.description &&
-          cat.description.toLowerCase().includes(search.toLowerCase()))
+      (prod: Product) =>
+        prod.name.toLowerCase().includes(search.toLowerCase()) ||
+        (prod.description &&
+          prod.description.toLowerCase().includes(search.toLowerCase())) ||
+        (prod.sku && prod.sku.toLowerCase().includes(search.toLowerCase())) ||
+        (prod.brand && prod.brand.toLowerCase().includes(search.toLowerCase()))
     )
     .filter(
-      (cat: Category) =>
+      (prod: Product) =>
         filters.status === 'all' ||
-        (filters.status === 'active' && cat.is_active) ||
-        (filters.status === 'inactive' && !cat.is_active)
+        (filters.status === 'active' && prod.is_active) ||
+        (filters.status === 'inactive' && !prod.is_active)
     )
-    .sort((a: Category, b: Category) => {
+    .sort((a: Product, b: Product) => {
       if (filters.sort === 'newest')
         return (
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -85,14 +90,14 @@ export default function SuperAdminCategoryPage() {
         )
       if (filters.sort === 'name-asc') return a.name.localeCompare(b.name)
       if (filters.sort === 'name-desc') return b.name.localeCompare(a.name)
+      if (filters.sort === 'price-asc') return a.price - b.price
+      if (filters.sort === 'price-desc') return b.price - a.price
       return 0
     })
 
   // Pagination
-  const totalPages = Math.ceil(
-    filteredCategories.length / filters.resultsPerPage
-  )
-  const paginatedCategories = filteredCategories.slice(
+  const totalPages = Math.ceil(filteredProducts.length / filters.resultsPerPage)
+  const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * filters.resultsPerPage,
     currentPage * filters.resultsPerPage
   )
@@ -105,10 +110,10 @@ export default function SuperAdminCategoryPage() {
   }
 
   const toggleSelectAll = () => {
-    if (selected.length === paginatedCategories.length) {
+    if (selected.length === paginatedProducts.length) {
       setSelected([])
     } else {
-      setSelected(paginatedCategories.map((cat) => cat.id))
+      setSelected(paginatedProducts.map((prod) => prod.id))
     }
   }
 
@@ -118,7 +123,7 @@ export default function SuperAdminCategoryPage() {
 
     try {
       setIsLoading(true)
-      const res = await fetch('/api/category/bulk', {
+      const res = await fetch('/api/product/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,16 +157,29 @@ export default function SuperAdminCategoryPage() {
     </span>
   )
 
-  // Color indicator component
-  const ColorIndicator = ({ color }: { color?: string }) => (
-    <span
-      className={`inline-block h-4 w-4 rounded-full border border-gray-300 mr-2 ${
-        color ? '' : 'color-indicator-default'
-      }`}
-      style={color ? { backgroundColor: color } : undefined}
-      title={color || 'No color'}
-    />
-  )
+  // Product image component
+  const ProductImage = ({ image_url }: { image_url?: string }) =>
+    image_url ? (
+      <Image
+        src={image_url}
+        alt='Product'
+        width={40}
+        height={40}
+        className='rounded-lg object-cover'
+      />
+    ) : (
+      <div className='h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-400'>
+        <FaImage className='text-xl' />
+      </div>
+    )
+
+  // Format price
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price)
+  }
 
   return (
     <div className='space-y-6 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto max-h-[calc(100vh-200px)]'>
@@ -170,17 +188,17 @@ export default function SuperAdminCategoryPage() {
         <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8'>
           <div>
             <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-              Category Management
+              Product Management
             </h1>
             <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-              Manage your product categories and organization
+              Manage your products and inventory
             </p>
           </div>
           <div className='flex flex-wrap gap-3'>
-            <Link href='/superadmin/content/category/create'>
+            <Link href='/superadmin/content/product/create'>
               <button className='flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-4 py-2.5 rounded-lg shadow-md transition-all duration-200'>
                 <FaPlus className='text-sm' />
-                <span>Add Category</span>
+                <span>Add Product</span>
               </button>
             </Link>
           </div>
@@ -195,7 +213,7 @@ export default function SuperAdminCategoryPage() {
               </div>
               <input
                 type='text'
-                placeholder='Search categories by name or description...'
+                placeholder='Search products by name, description, SKU or brand...'
                 className='block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -253,12 +271,14 @@ export default function SuperAdminCategoryPage() {
                         setFilters({ ...filters, sort: e.target.value })
                       }
                       className='w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                      title='Sort categories'
+                      title='Sort products'
                     >
                       <option value='newest'>Newest First</option>
                       <option value='oldest'>Oldest First</option>
                       <option value='name-asc'>Name (A-Z)</option>
                       <option value='name-desc'>Name (Z-A)</option>
+                      <option value='price-asc'>Price (Low to High)</option>
+                      <option value='price-desc'>Price (High to Low)</option>
                     </select>
                   </div>
                   <div>
@@ -301,7 +321,7 @@ export default function SuperAdminCategoryPage() {
               <div className='flex flex-col md:flex-row md:items-center gap-4'>
                 <div className='text-blue-800 dark:text-blue-200 font-medium'>
                   {selected.length}{' '}
-                  {selected.length === 1 ? 'category' : 'categories'} selected
+                  {selected.length === 1 ? 'product' : 'products'} selected
                 </div>
                 <div className='flex-1 flex flex-wrap gap-3'>
                   <select
@@ -342,18 +362,18 @@ export default function SuperAdminCategoryPage() {
         <div className='bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden'>
           {loading ? (
             <div className='flex justify-center items-center h-64'>
-              <LoadingSpinner message='Loading categories...' />
+              <LoadingSpinner message='Loading products...' />
             </div>
           ) : error ? (
             <div className='p-6 text-red-500 font-medium'>{error}</div>
-          ) : filteredCategories.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className='p-6 text-center'>
               <div className='text-gray-500 dark:text-gray-400 mb-4'>
-                No categories found matching your criteria
+                No products found matching your criteria
               </div>
-              <Link href='/superadmin/content/category/create'>
+              <Link href='/superadmin/content/product/create-products'>
                 <button className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg'>
-                  Create New Category
+                  Create New Product
                 </button>
               </Link>
             </div>
@@ -372,24 +392,42 @@ export default function SuperAdminCategoryPage() {
                           type='checkbox'
                           checked={
                             selected.length > 0 &&
-                            selected.length === paginatedCategories.length
+                            selected.length === paginatedProducts.length
                           }
                           onChange={toggleSelectAll}
                           className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded'
-                          title='Select all categories'
+                          title='Select all products'
                         />
                       </th>
                       <th
                         scope='col'
                         className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
                       >
-                        Name
+                        Product
                       </th>
                       <th
                         scope='col'
                         className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
                       >
-                        Visual
+                        SKU
+                      </th>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
+                      >
+                        Brand
+                      </th>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
+                      >
+                        Price
+                      </th>
+                      <th
+                        scope='col'
+                        className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
+                      >
+                        Stock
                       </th>
                       <th
                         scope='col'
@@ -401,13 +439,7 @@ export default function SuperAdminCategoryPage() {
                         scope='col'
                         className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
                       >
-                        <span className='whitespace-nowrap'>Sort Order</span>
-                      </th>
-                      <th
-                        scope='col'
-                        className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'
-                      >
-                        <span className='whitespace-nowrap'>Last Updated</span>
+                        Last Updated
                       </th>
                       <th
                         scope='col'
@@ -418,68 +450,57 @@ export default function SuperAdminCategoryPage() {
                     </tr>
                   </thead>
                   <tbody className='bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700'>
-                    {paginatedCategories.map((cat) => (
+                    {paginatedProducts.map((prod) => (
                       <tr
-                        key={cat.id}
+                        key={prod.id}
                         className='hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       >
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <input
                             type='checkbox'
-                            checked={selected.includes(cat.id)}
-                            onChange={() => toggleSelect(cat.id)}
+                            checked={selected.includes(prod.id)}
+                            onChange={() => toggleSelect(prod.id)}
                             className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded'
-                            title={`Select ${cat.name}`}
+                            title={`Select ${prod.name}`}
                           />
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap'>
+                        <td className='px-6 py-4'>
                           <div className='flex items-center'>
                             <div className='flex-shrink-0 h-10 w-10 mr-3'>
-                              {cat.image_url ? (
-                                <Image
-                                  src={cat.image_url}
-                                  alt={cat.name}
-                                  width={40}
-                                  height={40}
-                                  className='rounded-lg object-cover'
-                                />
-                              ) : (
-                                <div className='h-full w-full rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-400'>
-                                  <FaImage className='text-xl' />
-                                </div>
-                              )}
+                              <ProductImage image_url={prod.image_url} />
                             </div>
                             <div>
                               <div className='text-sm font-medium text-gray-900 dark:text-white'>
-                                {cat.name}
+                                {prod.name}
                               </div>
                               <div className='text-sm text-gray-500 dark:text-gray-400 line-clamp-1'>
-                                {cat.description || 'No description'}
+                                {prod.description || 'No description'}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap'>
-                          <div className='flex items-center'>
-                            <ColorIndicator color={cat.color} />
-                            <span className='text-sm text-gray-500 dark:text-gray-400'>
-                              {cat.icon || 'No icon'}
-                            </span>
-                          </div>
+                        <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
+                          {prod.sku || 'N/A'}
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
+                          {prod.brand || 'N/A'}
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
+                          {formatPrice(prod.price)}
+                        </td>
+                        <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
+                          {prod.stock !== undefined ? prod.stock : 'N/A'}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
-                          <StatusBadge active={cat.is_active} />
+                          <StatusBadge active={prod.is_active} />
                         </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
-                          {cat.sort_order}
-                        </td>
-                        <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400'>
-                          {new Date(cat.updated_at).toLocaleDateString()}
+                        <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
+                          {new Date(prod.updated_at).toLocaleDateString()}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
-                          <div className='flex justify-end space-x-2'>
+                          <div className='flex justify-end space-x-1'>
                             <Link
-                              href={`/superadmin/content/category/${cat.id}/view`}
+                              href={`/superadmin/content/product/${prod.id}/view`}
                             >
                               <button
                                 className='text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30'
@@ -489,7 +510,7 @@ export default function SuperAdminCategoryPage() {
                               </button>
                             </Link>
                             <Link
-                              href={`/superadmin/content/category/${cat.id}/edit`}
+                              href={`/superadmin/content/product/${prod.id}/edit`}
                             >
                               <button
                                 className='text-green-600 hover:text-green-900 dark:hover:text-green-400 p-1 rounded-full hover:bg-green-50 dark:hover:bg-green-900/30'
@@ -502,7 +523,7 @@ export default function SuperAdminCategoryPage() {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    `Are you sure you want to delete "${cat.name}"?`
+                                    `Are you sure you want to delete "${prod.name}"?`
                                   )
                                 ) {
                                   // TODO: Implement delete functionality
@@ -552,12 +573,12 @@ export default function SuperAdminCategoryPage() {
                       <span className='font-medium'>
                         {Math.min(
                           currentPage * filters.resultsPerPage,
-                          filteredCategories.length
+                          filteredProducts.length
                         )}
                       </span>{' '}
                       of{' '}
                       <span className='font-medium'>
-                        {filteredCategories.length}
+                        {filteredProducts.length}
                       </span>{' '}
                       results
                     </p>

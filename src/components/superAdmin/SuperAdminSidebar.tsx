@@ -22,6 +22,7 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaLayerGroup,
+  FaProductHunt,
 } from 'react-icons/fa'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -162,6 +163,15 @@ const SuperAdminSidebar = () => {
                   <span className='flex items-center'>
                     <FaLayerGroup className='mr-2 text-sm' />
                     <span>Categories</span>
+                  </span>
+                </Link>
+                <Link
+                  href='/superadmin/content/product'
+                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                >
+                  <span className='flex items-center'>
+                    <FaProductHunt className='mr-2 text-sm' />
+                    <span>Products</span>
                   </span>
                 </Link>
                 {/* Add more content links here as needed */}
