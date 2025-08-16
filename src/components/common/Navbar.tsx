@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi2'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import CartDrawer from '@/components/cart/CartDrawer'
 
 const tabList = [
   'Buy products',
@@ -27,11 +28,12 @@ const Navbar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [cartCount] = useState(0)
   const [activeTab, setActiveTab] = useState(tabList[0])
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false)
+  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  const toggleCartDrawer = () => {}
+  const toggleCartDrawer = () => setCartDrawerOpen((open) => !open)
   const toggleNavDrawer = () => {}
 
   const handleProfileClick = () => {
@@ -39,7 +41,7 @@ const Navbar: React.FC = () => {
     if (user) {
       router.push('/profile')
     } else {
-      setDrawerOpen(true)
+      setProfileDrawerOpen(true)
     }
   }
 
@@ -96,7 +98,7 @@ const Navbar: React.FC = () => {
               onClick={handleProfileClick}
               className='hover:text-black flex flex-col items-center'
               aria-label={user ? 'Go to profile' : 'Sign in or create account'}
-              aria-haspopup={!user && !loading ? 'dialog' : undefined}
+              aria-haspopup={!user && !loading ? 'dialog' : false}
               disabled={loading}
             >
               <HiOutlineUser className='text-gray-700 h-6 w-6' />
@@ -308,13 +310,23 @@ const Navbar: React.FC = () => {
         </div>
       </nav>
       {/* Profile Drawer Overlay */}
-      {drawerOpen && (
+      {profileDrawerOpen && (
         <div
           className='fixed inset-0 z-40 bg-black/30'
-          onClick={() => setDrawerOpen(false)}
+          onClick={() => setProfileDrawerOpen(false)}
         />
       )}
-      <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <ProfileDrawer
+        open={profileDrawerOpen}
+        onClose={() => setProfileDrawerOpen(false)}
+      />
+      {/* Cart Drawer Overlay */}
+      {cartDrawerOpen && (
+        <CartDrawer
+          open={cartDrawerOpen}
+          onClose={() => setCartDrawerOpen(false)}
+        />
+      )}
     </>
   )
 }

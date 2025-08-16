@@ -108,12 +108,13 @@ const SuperAdminSidebar = () => {
             {expandedSections.administration && (
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
-                  href='/superadmin/administration/admins'
+                  href='/superadmin/administration/adminUsers'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
                 >
                   <FaUsers className='mr-1 text-sm' />
                   <span>Admin Users</span>
                 </Link>
+
                 <Link
                   href='/superadmin/administration/profile'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
@@ -122,7 +123,7 @@ const SuperAdminSidebar = () => {
                   <span>Super Admin Profile</span>
                 </Link>
                 <Link
-                  href='/superadmin/administration/roles'
+                  href='/superadmin/administration/profiles'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
                 >
                   <FaShieldAlt className='mr-1 text-sm' />
@@ -180,7 +181,7 @@ const SuperAdminSidebar = () => {
           </div>
           {/* Orders & Payments */}
           <Link
-            href='/superadmin/orders'
+            href='/superadmin/administration/OrdersDashboard'
             className='text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium'
           >
             <FaShoppingCart className='text-lg' />

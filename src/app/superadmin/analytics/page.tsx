@@ -1,4 +1,5 @@
-import SuperAdminSalesReports from '@/app/(superadmin)/superadmin/analytics/SuperAdminSalesReports'
+// Update the import path to the correct location
+import SuperAdminSalesReports from './SuperAdminSalesReports'
 
 export default function AnalyticsPage() {
   return (
