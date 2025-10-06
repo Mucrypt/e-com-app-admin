@@ -23,6 +23,7 @@ import {
   FaChevronRight,
   FaLayerGroup,
   FaProductHunt,
+  FaChartLine,
 } from 'react-icons/fa'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -123,18 +124,11 @@ const SuperAdminSidebar = () => {
                   <span>Super Admin Profile</span>
                 </Link>
                 <Link
-                  href='/superadmin/administration/profiles'
+                  href='/superadmin/administration/roles-permissions'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
                 >
                   <FaShieldAlt className='mr-1 text-sm' />
                   <span>Roles & Permissions</span>
-                </Link>
-                <Link
-                  href='/superadmin/administration/audit-logs'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
-                >
-                  <FaFileAlt className='mr-1 text-sm' />
-                  <span>Audit Logs</span>
                 </Link>
               </div>
             )}
@@ -173,6 +167,16 @@ const SuperAdminSidebar = () => {
                   <span className='flex items-center'>
                     <FaProductHunt className='mr-2 text-sm' />
                     <span>Products</span>
+                  </span>
+                </Link>
+               
+                <Link
+                  href='/superadmin/content/blogs'
+                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                >
+                  <span className='flex items-center'>
+                    <FaFileAlt className='mr-2 text-sm' />
+                    <span>Blog Management</span>
                   </span>
                 </Link>
                 {/* Add more content links here as needed */}
@@ -283,6 +287,13 @@ const SuperAdminSidebar = () => {
             {expandedSections.system && (
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
+                  href='/superadmin/system/system-dashboard'
+                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                >
+                  <FaChartLine className='mr-1 text-sm' />
+                  <span>System Dashboard</span>
+                </Link>
+                <Link
                   href='/superadmin/system/settings'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
                 >
@@ -297,7 +308,15 @@ const SuperAdminSidebar = () => {
                   <span>Database Management</span>
                 </Link>
                 <Link
-                  href='/superadmin/system/security'
+                  href='/superadmin/system/audit-logs'
+                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                >
+                  <FaFileAlt className='mr-1 text-sm' />
+                  <span>Audit Logs</span>
+                </Link>
+
+                <Link
+                  href='/superadmin/system/notifications'
                   className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
                 >
                   <FaShieldAlt className='mr-1 text-sm' />

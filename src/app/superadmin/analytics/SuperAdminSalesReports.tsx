@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import { FaChartLine, FaCalendarAlt, FaFileExport } from 'react-icons/fa'
 import {
   BarChart,
@@ -20,6 +20,9 @@ const salesData = [
   { name: 'Jun', revenue: 2390, orders: 3800 },
   { name: 'Jul', revenue: 3490, orders: 4300 },
 ]
+
+// Precompute growth values once (static for demo)
+const growthValues = [12, 8, 15, 10, 7, 9, 13]
 
 const SuperAdminSalesReports = () => {
   return (
@@ -97,7 +100,7 @@ const SuperAdminSalesReports = () => {
             </tr>
           </thead>
           <tbody className='bg-white divide-y divide-gray-200'>
-            {salesData.map((month) => (
+            {salesData.map((month, idx) => (
               <tr key={month.name}>
                 <td className='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>
                   {month.name}
@@ -112,7 +115,7 @@ const SuperAdminSalesReports = () => {
                   ${(month.revenue / month.orders).toFixed(2)}
                 </td>
                 <td className='px-6 py-4 whitespace-nowrap text-sm text-green-600'>
-                  +{Math.floor(Math.random() * 20) + 5}%
+                  +{growthValues[idx] || 10}%
                 </td>
               </tr>
             ))}

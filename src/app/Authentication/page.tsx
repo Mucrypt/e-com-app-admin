@@ -77,7 +77,7 @@ export default function AuthenticationPage() {
     setIsSubmitting(true)
     try {
       await authenticate(data.email, data.password)
-      router.push('/dashboard')
+      router.push('/')
     } catch {
       showAuthToast('error', 'Login failed: Invalid email or password')
     } finally {
@@ -89,7 +89,7 @@ export default function AuthenticationPage() {
     setIsSubmitting(true)
     try {
       await signUp(data.email, data.password)
-      router.push('/dashboard')
+      router.push('/')
     } catch {
       showAuthToast('error', 'Sign up failed: Email already in use')
     } finally {
@@ -101,7 +101,7 @@ export default function AuthenticationPage() {
     setIsSubmitting(true)
     try {
       await signInWithGoogle()
-      router.push('/dashboard')
+      router.push('/')
     } catch {
       showAuthToast('error', 'Google sign in failed: Please try again later')
     } finally {

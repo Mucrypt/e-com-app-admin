@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -53,6 +53,34 @@ export default function SuperAdminTopbar() {
     const page = pathParts[1]
     return page.charAt(0).toUpperCase() + page.slice(1).replace('-', ' ')
   }
+
+  useEffect(() => {
+    setIsNotificationOpen(false)
+    setIsProfileOpen(false)
+    setIsHelpOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // If any dropdown is open and the click is outside, close all
+      const dropdowns = document.querySelectorAll('.dropdown-menu')
+      let clickedInside = false
+      dropdowns.forEach((dropdown) => {
+        if (dropdown.contains(event.target as Node)) {
+          clickedInside = true
+        }
+      })
+      if (!clickedInside) {
+        setIsNotificationOpen(false)
+        setIsProfileOpen(false)
+        setIsHelpOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <div className='sticky top-0 z-40 w-full backdrop-blur-lg bg-gradient-to-r from-superadmin-900/80 via-superadmin-800/80 to-gray-700/80 shadow-lg border-b border-superadmin-700'>
@@ -281,7 +309,7 @@ export default function SuperAdminTopbar() {
                 <FaChevronDown className='hidden md:inline text-xs text-superadmin-400' />
               </button>
               {isProfileOpen && (
-                <div className='absolute right-0 mt-2 w-56 bg-white/95 rounded-xl shadow-2xl z-30 border border-superadmin-200 animate-fade-in'>
+                <div className='absolute right-0 mt-2 w-56 bg-white/95 rounded-xl shadow-2xl z-30 border border-superadmin-200 animate-fade-in dropdown-menu'>
                   <div className='p-4 border-b border-superadmin-100'>
                     <div className='flex items-center space-x-3'>
                       <Image
@@ -303,7 +331,7 @@ export default function SuperAdminTopbar() {
                   </div>
                   <div className='p-2'>
                     <Link
-                      href='/superadmin/profile'
+                      href='/superadmin/administration/profile'
                       className='flex items-center space-x-2 p-2 text-sm text-superadmin-700 hover:bg-superadmin-50 rounded-md font-medium transition-colors duration-150'
                     >
                       <FaUser className='text-superadmin-400' />
