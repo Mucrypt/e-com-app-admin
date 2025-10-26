@@ -1,244 +1,308 @@
-// components/home/FeaturedProducts.tsx
 'use client'
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Heart, Star, ShoppingCart, Eye } from 'lucide-react'
+import { FaHeart, FaShoppingCart, FaStar, FaEye } from 'react-icons/fa'
+import FeaturedProductsSkeleton from '@/components/common/FeaturedProductsSkeleton'
 
-const products = [
-  {
-    id: 1,
-    name: 'Modern Leather Sofa',
-    price: 1299,
-    originalPrice: 1599,
-    image: '/images/products/sofa.jpg',
-    rating: 4.8,
-    reviews: 124,
-    isNew: true,
-    isHot: false,
-    discount: 20,
-  },
-  {
-    id: 2,
-    name: 'Minimalist Coffee Table',
-    price: 299,
-    originalPrice: 399,
-    image: '/images/products/coffee-table.jpg',
-    rating: 4.6,
-    reviews: 89,
-    isNew: false,
-    isHot: true,
-    discount: 25,
-  },
-  {
-    id: 3,
-    name: 'Ergonomic Office Chair',
-    price: 499,
-    originalPrice: 599,
-    image: '/images/products/office-chair.jpg',
-    rating: 4.9,
-    reviews: 203,
-    isNew: true,
-    isHot: false,
-    discount: 15,
-  },
-  {
-    id: 4,
-    name: 'Smart LED Floor Lamp',
-    price: 159,
-    originalPrice: 199,
-    image: '/images/products/lamp.jpg',
-    rating: 4.7,
-    reviews: 67,
-    isNew: false,
-    isHot: true,
-    discount: 20,
-  },
-  {
-    id: 5,
-    name: 'King Size Memory Foam Mattress',
-    price: 899,
-    originalPrice: 1199,
-    image: '/images/products/mattress.jpg',
-    rating: 4.8,
-    reviews: 156,
-    isNew: false,
-    isHot: false,
-    discount: 25,
-  },
-  {
-    id: 6,
-    name: 'Designer Bookshelf',
-    price: 459,
-    originalPrice: 599,
-    image: '/images/products/bookshelf.jpg',
-    rating: 4.5,
-    reviews: 78,
-    isNew: true,
-    isHot: false,
-    discount: 23,
-  },
-]
+interface Product {
+  id: string
+  name: string
+  price: number
+  original_price?: number | null
+  image_url?: string | null
+  images?: string | string[] | null
+  rating?: number | null
+  review_count?: number | null
+  is_on_sale?: boolean | null
+  is_featured?: boolean | null
+  brand?: string | null
+  short_description?: string | null
+  description?: string | null
+  sku?: string | null
+  stock_quantity?: number | null
+  is_active?: boolean | null
+}
 
-const FeaturedProducts = () => {
-  const [favorites, setFavorites] = useState<number[]>([])
+interface FeaturedProductsProps {
+  title?: string
+  subtitle?: string
+  limit?: number
+}
 
-  const toggleFavorite = (productId: number) => {
-    setFavorites((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
+const FeaturedProducts: React.FC<FeaturedProductsProps> = ({
+  title = 'Featured Products',
+  subtitle = 'Discover our hand-picked favorites',
+  limit = 8,
+}) => {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // console.log('🔍 Fetching featured products...')
+
+        const response = await fetch(
+          `/api/products?featured=true&limit=${limit}`
+        )
+        // console.log('📡 Response status:', response.status)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('❌ API Error:', errorText)
+          throw new Error(`Failed to fetch products: ${response.status}`)
+        }
+
+        const data = await response.json()
+        // console.log('📦 API Response:', data)
+
+        setProducts(data || [])
+      } catch (err: unknown) {
+        console.error('❌ Error fetching featured products:', err)
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Failed to load featured products'
+        setError(message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [limit])
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price)
+  }
+
+  const getDiscountPercentage = (original: number, current: number) => {
+    return Math.round(((original - current) / original) * 100)
+  }
+
+  const getProductImage = (product: Product): string => {
+    // Primary: Use image_url
+    if (product.image_url) {
+      return product.image_url
+    }
+
+    // Secondary: Try to parse images field
+    if (product.images) {
+      if (typeof product.images === 'string') {
+        try {
+          const parsed = JSON.parse(product.images)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed[0]
+          }
+        } catch {
+          // If parsing fails, assume it's a direct URL
+          return product.images
+        }
+      } else if (Array.isArray(product.images) && product.images.length > 0) {
+        return product.images[0]
+      }
+    }
+
+    // Fallback image
+    return '/images/placeholder-product.jpg'
+  }
+
+  if (loading) {
+    return <FeaturedProductsSkeleton itemCount={limit} />
+  }
+
+  if (error) {
+    return (
+      <section className='py-16 bg-white'>
+        <div className='container mx-auto px-4'>
+          <div className='text-center'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-4'>{title}</h2>
+            <div className='bg-red-50 border border-red-200 rounded-lg p-4 max-w-md mx-auto'>
+              <p className='text-red-600'>{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className='mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700'
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (products.length === 0) {
+    return (
+      <section className='py-16 bg-white'>
+        <div className='container mx-auto px-4'>
+          <div className='text-center'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-4'>{title}</h2>
+            <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto'>
+              <p className='text-yellow-800'>No featured products found</p>
+            </div>
+          </div>
+        </div>
+      </section>
     )
   }
 
   return (
-    <section className='py-20 bg-white'>
-      <div className='container mx-auto px-6'>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className='text-center mb-16'
-        >
-          <Badge variant='secondary' className='mb-4 px-4 py-1 text-sm'>
-            Featured Collection
-          </Badge>
-          <h2 className='text-4xl md:text-5xl font-bold text-gray-900 mb-4'>
-            Best Selling Products
-          </h2>
-          <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
-            Discover our most loved products curated for exceptional quality and
-            style
-          </p>
-        </motion.div>
-
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
-          {products.map((product, index) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              whileHover={{ y: -5 }}
-              className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden'
-            >
-              <div className='relative overflow-hidden'>
-                <div className='aspect-square relative'>
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className='object-cover group-hover:scale-105 transition-transform duration-500'
-                  />
-
-                  {/* Badges */}
-                  <div className='absolute top-4 left-4 flex gap-2'>
-                    {product.isNew && (
-                      <Badge className='bg-green-500 hover:bg-green-600'>
-                        New
-                      </Badge>
-                    )}
-                    {product.isHot && <Badge variant='destructive'>Hot</Badge>}
-                    {product.discount > 0 && (
-                      <Badge
-                        variant='secondary'
-                        className='bg-orange-500 text-white'
-                      >
-                        -{product.discount}%
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className='absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='bg-white/90 hover:bg-white rounded-full shadow-lg'
-                      onClick={() => toggleFavorite(product.id)}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          favorites.includes(product.id)
-                            ? 'fill-red-500 text-red-500'
-                            : ''
-                        }`}
-                      />
-                    </Button>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='bg-white/90 hover:bg-white rounded-full shadow-lg'
-                    >
-                      <Eye className='h-4 w-4' />
-                    </Button>
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  <div className='absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                    <Button className='bg-black text-white hover:bg-gray-800 rounded-full px-6 shadow-lg'>
-                      <ShoppingCart className='h-4 w-4 mr-2' />
-                      Add to Cart
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className='p-6'>
-                <h3 className='font-semibold text-lg mb-2 group-hover:text-blue-600 transition-colors'>
-                  {product.name}
-                </h3>
-
-                {/* Rating */}
-                <div className='flex items-center gap-2 mb-3'>
-                  <div className='flex items-center gap-1'>
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`h-4 w-4 ${
-                          i < Math.floor(product.rating)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className='text-sm text-gray-600'>
-                    ({product.reviews})
-                  </span>
-                </div>
-
-                {/* Price */}
-                <div className='flex items-center gap-3'>
-                  <span className='text-2xl font-bold text-gray-900'>
-                    ${product.price}
-                  </span>
-                  {product.originalPrice > product.price && (
-                    <span className='text-lg text-gray-500 line-through'>
-                      ${product.originalPrice}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          ))}
+    <section className='py-16 bg-white'>
+      <div className='container mx-auto px-4'>
+        <div className='text-center mb-12'>
+          <h2 className='text-3xl font-bold text-gray-900 mb-4'>{title}</h2>
+          <p className='text-gray-600'>{subtitle}</p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className='text-center mt-12'
-        >
-          <Button
-            size='lg'
-            className='px-8 py-3 text-lg bg-black hover:bg-gray-800'
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+          {products.map((product, index) => {
+            const imageUrl = getProductImage(product)
+
+            return (
+              <div
+                key={product.id}
+                className='group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200'
+              >
+                {/* Image Container - Fixed height and proper aspect ratio */}
+                <div className='relative w-full h-64 bg-gray-50 overflow-hidden'>
+                  <Image
+                    src={imageUrl}
+                    alt={product.name}
+                    fill
+                    className='object-cover transition-transform duration-300 group-hover:scale-105'
+                    sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw'
+                    priority={index < 4}
+                    onError={(e) => {
+                      console.error(
+                        `Image failed to load for ${product.name}:`,
+                        imageUrl
+                      )
+                      // Fallback to a placeholder or hide the image
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'none'
+                    }}
+                  />
+
+                  {/* Sale Badge */}
+                  {product.is_on_sale && product.original_price && (
+                    <div className='absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20'>
+                      -
+                      {getDiscountPercentage(
+                        product.original_price,
+                        product.price
+                      )}
+                      %
+                    </div>
+                  )}
+
+                  {/* Featured Badge */}
+                  {product.is_featured && (
+                    <div className='absolute top-3 right-3 bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20'>
+                      Featured
+                    </div>
+                  )}
+
+                  {/* Hover Overlay */}
+                  <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity duration-300 z-10'></div>
+
+                  {/* Hover Actions */}
+                  <div className='absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30'>
+                    <div className='flex space-x-2'>
+                      <button
+                        className='bg-white text-gray-800 p-3 rounded-full hover:bg-gray-100 transition-colors shadow-lg'
+                        onClick={() => {
+                          // console.log('Quick view:', product.id)
+                          // Add your quick view logic here
+                        }}
+                        title={`Quick view ${product.name}`}
+                      >
+                        <FaEye className='w-4 h-4' />
+                      </button>
+                      <button
+                        className='bg-white text-red-600 p-3 rounded-full hover:bg-red-50 transition-colors shadow-lg'
+                        onClick={() => {
+                          // console.log('Add to wishlist:', product.id)
+                          // Add your wishlist logic here
+                        }}
+                        title={`Add ${product.name} to wishlist`}
+                      >
+                        <FaHeart className='w-4 h-4' />
+                      </button>
+                      <button
+                        className='bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors shadow-lg'
+                        onClick={() => {
+                          // console.log('Add to cart:', product.id)
+                          // Add your cart logic here
+                        }}
+                        title={`Add ${product.name} to cart`}
+                      >
+                        <FaShoppingCart className='w-4 h-4' />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Product Info */}
+                <div className='p-4'>
+                  <Link href={`/products/${product.id}`}>
+                    <h3 className='font-semibold text-gray-900 mb-2 hover:text-indigo-600 transition-colors line-clamp-2'>
+                      {product.name}
+                    </h3>
+                  </Link>
+
+                  {product.rating && product.rating > 0 && (
+                    <div className='flex items-center space-x-1 mb-2'>
+                      <div className='flex items-center'>
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(product.rating || 0)
+                                ? 'text-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className='text-sm text-gray-500'>
+                        ({product.review_count || 0})
+                      </span>
+                    </div>
+                  )}
+
+                  <div className='flex items-center space-x-2'>
+                    <span className='text-lg font-bold text-gray-900'>
+                      {formatPrice(product.price)}
+                    </span>
+                    {product.original_price && product.is_on_sale && (
+                      <span className='text-sm text-gray-500 line-through'>
+                        {formatPrice(product.original_price)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className='text-center mt-8'>
+          <Link
+            href='/products'
+            className='inline-flex items-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors duration-300'
           >
             View All Products
-          </Button>
-        </motion.div>
+          </Link>
+        </div>
       </div>
     </section>
   )

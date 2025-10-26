@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import '@/styles/globals.css'
+import { ResponsiveProvider } from '@/providers/responsive-provider'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -14,14 +15,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'mukulah',
-  description: 'Mukulah Admin is a dashboard for managing products, orders, and users  e-commerce app.',
+  description:
+    'Mukulah Admin is a dashboard for managing products, orders, and users  e-commerce app.',
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang='en'>
       <head>
@@ -30,7 +32,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <main>{children}</main>
+        <ResponsiveProvider>{children}</ResponsiveProvider>
       </body>
     </html>
   )

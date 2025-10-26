@@ -4,6 +4,7 @@ import '@/styles/navbar.css'
 import Link from 'next/link'
 import ProfileDrawer from './ProfileDrawer'
 import Logo from '../common/Logo'
+import { RoleGuard } from './RoleGuard'
 import { FaSearch, FaUserShield, FaHeart, FaStore } from 'react-icons/fa'
 import {
   HiOutlineUser,
@@ -14,6 +15,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import CartDrawer from '@/components/cart/CartDrawer'
 
+
+ 
 const tabList = [
   'Buy products',
   'Explore environments',
@@ -32,6 +35,8 @@ const Navbar: React.FC = () => {
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false)
   const { user, loading } = useAuth()
   const router = useRouter()
+
+
 
   const toggleCartDrawer = () => setCartDrawerOpen((open) => !open)
   const toggleNavDrawer = () => {}
@@ -70,16 +75,31 @@ const Navbar: React.FC = () => {
               <FaSearch className='text-white' />
             </button>
           </div>
-
+        
           <div className='flex items-center space-x-4'>
-            {/* TODO: Only show these links for users with admin/superadmin privileges. For now, always show for development. */}
-            <Link
-              href='/superadmin'
-              className='hover:text-black flex flex-col items-center'
-            >
-              <FaUserShield className='text-gray-700 h-6 w-6' />
-              <span className='text-xs hidden md:block'>Super Admin</span>
-            </Link>
+            {/* Super Admin Link - Only visible to superadmins */}
+            <RoleGuard requireSuperAdmin>
+              <Link
+                href='/superadmin'
+                className='hover:text-black flex flex-col items-center'
+              >
+                <FaUserShield className='text-gray-700 h-6 w-6' />
+                <span className='text-xs hidden md:block'>Super Admin</span>
+              </Link>
+            </RoleGuard>
+
+            {/* Admin Link - Visible to both admin and superadmin */}
+            <RoleGuard requireAdmin>
+              <Link
+                href='/admin'
+                className='hover:text-black flex flex-col items-center'
+              >
+                <FaStore className='text-gray-700 h-6 w-6' />
+                <span className='text-xs hidden md:block'>Admin</span>
+              </Link>
+            </RoleGuard>
+
+            {/* Wishlist - Always visible */}
             <Link
               href='/Wishlist'
               className='hover:text-black flex flex-col items-center'
@@ -87,13 +107,7 @@ const Navbar: React.FC = () => {
               <FaHeart className='text-gray-700 h-6 w-6' />
               <span className='text-xs hidden md:block'>Wishlist</span>
             </Link>
-            <Link
-              href='/profile'
-              className='hover:text-black flex flex-col items-center'
-            >
-              <FaStore className='text-gray-700 h-6 w-6' />
-              <span className='text-xs hidden md:block'>Admin</span>
-            </Link>
+
             <button
               onClick={handleProfileClick}
               className='hover:text-black flex flex-col items-center'

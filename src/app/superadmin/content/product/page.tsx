@@ -18,36 +18,27 @@ import Link from 'next/link'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts } from '@/hooks/useProducts'
+import { Tables } from '@/types/database.types'
 
-interface Product {
-  id: string
-  name: string
-  description?: string
-  price: number
-  image_url?: string
-  category_id?: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-  stock?: number
-  sku?: string
-  color?: string
-  size?: string
-  brand?: string
-  meta_title?: string
-  meta_description?: string
-  seo_keywords?: string
+// Use the database type instead of defining a local interface
+type Product = Tables<'products'> & {
+  categories?: {
+    id: string
+    name: string
+    slug: string
+    color?: string
+  }
 }
 
 interface UseProductsResult {
   products: Product[]
   loading: boolean
   error: string | null
-  refresh?: () => void
+  refetch?: () => void
 }
 
 export default function SuperAdminProductPage() {
-  const { products, loading, error, refresh } =
+  const { products, loading, error, refetch } =
     useProducts() as UseProductsResult
 
   // State management
@@ -134,7 +125,7 @@ export default function SuperAdminProductPage() {
 
       if (!res.ok) throw new Error('Bulk action failed')
 
-      if (refresh) refresh()
+      if (refetch) refetch()
       setSelected([])
       setBulkAction('')
     } catch (err) {
@@ -145,7 +136,7 @@ export default function SuperAdminProductPage() {
   }
 
   // Status badge component
-  const StatusBadge = ({ active }: { active: boolean }) => (
+  const StatusBadge = ({ active }: { active: boolean | null }) => (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
         active
@@ -158,7 +149,7 @@ export default function SuperAdminProductPage() {
   )
 
   // Product image component
-  const ProductImage = ({ image_url }: { image_url?: string }) =>
+  const ProductImage = ({ image_url }: { image_url?: string | null }) =>
     image_url ? (
       <Image
         src={image_url}
@@ -489,7 +480,9 @@ export default function SuperAdminProductPage() {
                           {formatPrice(prod.price)}
                         </td>
                         <td className='px-6 py-4 text-sm text-gray-500 dark:text-gray-400'>
-                          {prod.stock !== undefined ? prod.stock : 'N/A'}
+                          {prod.stock_quantity !== null
+                            ? prod.stock_quantity
+                            : 'N/A'}
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap'>
                           <StatusBadge active={prod.is_active} />

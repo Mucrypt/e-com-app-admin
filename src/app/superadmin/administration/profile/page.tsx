@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { createClient } from '@/supabase/client'
+import React, { useState, useEffect } from 'react'
+
 import { Tables } from '@/supabase/types'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -33,15 +33,15 @@ import {
   FaPhone,
   FaGlobe,
   FaUserShield,
-  FaChartLine,
   FaHistory,
   FaShieldAlt,
   FaKey,
   FaPlus,
 } from 'react-icons/fa'
 import { FiUpload } from 'react-icons/fi'
+import LoadingSpinner from '@/components/common/LoadingSpinner'
 
-// Define a more specific type for user preferences
+// Define types for user preferences and address
 type UserPreferences = {
   theme?: 'light' | 'dark' | 'system'
   notifications?: boolean
@@ -50,7 +50,6 @@ type UserPreferences = {
   layout?: 'default' | 'compact' | 'detailed'
 }
 
-// Define a type for address
 type UserAddress = {
   street?: string
   city?: string
@@ -59,7 +58,7 @@ type UserAddress = {
   country?: string
 }
 
-// Extend the Tables<'users'> type with our custom types
+// Extended user type
 type ExtendedUser = Partial<Tables<'users'>> & {
   email?: string
   preferences?: UserPreferences
@@ -69,27 +68,51 @@ type ExtendedUser = Partial<Tables<'users'>> & {
 }
 
 export default function AdminProfile() {
-  const [user, setUser] = useState<ExtendedUser>({
-    full_name: 'Admin Superuser',
-    email: 'admin@example.com',
-    phone: '+1 (555) 123-4567',
-    role: 'superadmin',
-    avatar_url: 'https://randomuser.me/api/portraits/men/75.jpg',
-    address: {
-      street: '123 Admin Blvd',
-      city: 'Metropolis',
-      state: 'CA',
-      zip: '90210',
-      country: 'United States',
-    },
-    preferences: {
-      theme: 'dark',
-      notifications: true,
-      timezone: 'America/Los_Angeles',
-    },
-  })
+  const [user, setUser] = useState<ExtendedUser>({})
+  const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
+  const [saving, setSaving] = useState(false)
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/profile')
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile')
+      }
+
+      const data = await response.json()
+
+      // Combine auth user data with profile data
+      const combinedUser: ExtendedUser = {
+        ...data.profile,
+        email: data.user?.email,
+        id: data.user?.id,
+        created_at: data.user?.created_at,
+        // Ensure preferences and address are objects
+        preferences:
+          typeof data.profile?.preferences === 'object'
+            ? data.profile.preferences
+            : {},
+        address:
+          typeof data.profile?.address === 'object' ? data.profile.address : {},
+      }
+
+      setUser(combinedUser)
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      toast.error('Failed to load profile')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleInputChange = (
     field: keyof ExtendedUser,
@@ -126,21 +149,39 @@ export default function AdminProfile() {
 
   const handleSave = async () => {
     try {
-      const supabase = createClient()
-      if (user.id) {
-        const { error } = await supabase
-          .from('users')
-          .update(user)
-          .eq('id', user.id)
+      setSaving(true)
 
-        if (error) throw error
+      // Prepare data for update
+      const updateData = {
+        full_name: user.full_name,
+        phone: user.phone,
+        avatar_url: user.avatar_url,
+        preferences: user.preferences,
+        address: user.address,
+        updated_at: new Date().toISOString(),
       }
 
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile')
+      }
+
+      const data = await response.json()
+      setUser((prev) => ({ ...prev, ...data.profile }))
       toast.success('Profile updated successfully')
       setIsEditing(false)
     } catch (error) {
       console.error('Error updating profile:', error)
       toast.error('Failed to update profile')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -164,6 +205,10 @@ export default function AdminProfile() {
     }
   }
 
+  if (loading) {
+    return <LoadingSpinner message='Loading profile...' />
+  }
+
   return (
     <div className='space-y-6 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto max-h-[calc(100vh-200px)]'>
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
@@ -173,9 +218,12 @@ export default function AdminProfile() {
             <div className='bg-gradient-to-r from-indigo-600 to-purple-600 h-24 relative'>
               <div className='absolute -bottom-16 left-1/2 transform -translate-x-1/2'>
                 <Avatar className='h-32 w-32 border-4 border-white shadow-lg'>
-                  <AvatarImage src={user.avatar_url || ''} alt={''} />
+                  <AvatarImage
+                    src={user.avatar_url || ''}
+                    alt={user.full_name || 'Profile'}
+                  />
                   <AvatarFallback className='bg-indigo-100 text-indigo-800 text-2xl font-bold'>
-                    {user.full_name?.charAt(0) || 'A'}
+                    {user.full_name?.charAt(0) || user.email?.charAt(0) || 'A'}
                   </AvatarFallback>
                   {isEditing && (
                     <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-full'>
@@ -196,12 +244,12 @@ export default function AdminProfile() {
             </div>
             <CardHeader className='pt-20 text-center'>
               <CardTitle className='text-xl font-bold'>
-                {user.full_name}
+                {user.full_name || 'Admin User'}
               </CardTitle>
               <CardDescription className='flex justify-center mt-2'>
                 <Badge variant='destructive' className='gap-1'>
                   <FaUserShield className='h-3 w-3' />
-                  {user.role}
+                  {user.role || 'superadmin'}
                 </Badge>
               </CardDescription>
             </CardHeader>
@@ -213,7 +261,7 @@ export default function AdminProfile() {
                   </div>
                   <div>
                     <p className='text-sm text-gray-500'>Email</p>
-                    <p className='font-medium'>{user.email}</p>
+                    <p className='font-medium'>{user.email || 'Not set'}</p>
                   </div>
                 </div>
                 <div className='flex items-center gap-3'>
@@ -231,7 +279,7 @@ export default function AdminProfile() {
                         className='h-8'
                       />
                     ) : (
-                      <p className='font-medium'>{user.phone}</p>
+                      <p className='font-medium'>{user.phone || 'Not set'}</p>
                     )}
                   </div>
                 </div>
@@ -266,18 +314,34 @@ export default function AdminProfile() {
                       </Select>
                     ) : (
                       <p className='font-medium'>
-                        {user.preferences?.timezone}
+                        {user.preferences?.timezone || 'Not set'}
                       </p>
                     )}
                   </div>
                 </div>
               </div>
+
               <div className='mt-6 flex justify-center'>
                 {isEditing ? (
-                  <Button onClick={handleSave} className='gap-2'>
-                    <FaSave className='h-4 w-4' />
-                    Save Changes
-                  </Button>
+                  <div className='flex gap-2'>
+                    <Button
+                      onClick={handleSave}
+                      className='gap-2'
+                      disabled={saving}
+                    >
+                      <FaSave className='h-4 w-4' />
+                      {saving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button
+                      variant='outline'
+                      onClick={() => {
+                        setIsEditing(false)
+                        fetchProfile() // Reset changes
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 ) : (
                   <Button onClick={() => setIsEditing(true)} className='gap-2'>
                     <FaEdit className='h-4 w-4' />
@@ -301,7 +365,10 @@ export default function AdminProfile() {
                 <div>
                   <p className='font-medium'>Password</p>
                   <p className='text-sm text-gray-500'>
-                    Last changed 3 months ago
+                    Last changed{' '}
+                    {user.updated_at
+                      ? new Date(user.updated_at).toLocaleDateString()
+                      : 'Unknown'}
                   </p>
                 </div>
                 <Button variant='outline' size='sm'>
@@ -320,7 +387,7 @@ export default function AdminProfile() {
               <div className='flex items-center justify-between'>
                 <div>
                   <p className='font-medium'>Active Sessions</p>
-                  <p className='text-sm text-gray-500'>2 devices</p>
+                  <p className='text-sm text-gray-500'>Current device</p>
                 </div>
                 <Button variant='outline' size='sm'>
                   View All
@@ -379,23 +446,14 @@ export default function AdminProfile() {
                           }
                         />
                       ) : (
-                        <p className='font-medium py-2'>{user.full_name}</p>
+                        <p className='font-medium py-2'>
+                          {user.full_name || 'Not set'}
+                        </p>
                       )}
                     </div>
                     <div>
                       <Label htmlFor='email'>Email</Label>
-                      {isEditing ? (
-                        <Input
-                          id='email'
-                          value={user.email || ''}
-                          onChange={(e) =>
-                            handleInputChange('email', e.target.value)
-                          }
-                          type='email'
-                        />
-                      ) : (
-                        <p className='font-medium py-2'>{user.email}</p>
-                      )}
+                      <p className='font-medium py-2'>{user.email}</p>
                     </div>
                   </div>
 
@@ -439,7 +497,7 @@ export default function AdminProfile() {
                         />
                       ) : (
                         <p className='font-medium py-2'>
-                          {user.address?.street}
+                          {user.address?.street || 'Not set'}
                         </p>
                       )}
                     </div>
@@ -454,7 +512,9 @@ export default function AdminProfile() {
                           }
                         />
                       ) : (
-                        <p className='font-medium py-2'>{user.address?.city}</p>
+                        <p className='font-medium py-2'>
+                          {user.address?.city || 'Not set'}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -471,7 +531,7 @@ export default function AdminProfile() {
                         />
                       ) : (
                         <p className='font-medium py-2'>
-                          {user.address?.state}
+                          {user.address?.state || 'Not set'}
                         </p>
                       )}
                     </div>
@@ -486,7 +546,9 @@ export default function AdminProfile() {
                           }
                         />
                       ) : (
-                        <p className='font-medium py-2'>{user.address?.zip}</p>
+                        <p className='font-medium py-2'>
+                          {user.address?.zip || 'Not set'}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -501,7 +563,7 @@ export default function AdminProfile() {
                         />
                       ) : (
                         <p className='font-medium py-2'>
-                          {user.address?.country}
+                          {user.address?.country || 'Not set'}
                         </p>
                       )}
                     </div>
@@ -543,8 +605,8 @@ export default function AdminProfile() {
                         }`}
                         onClick={() => handlePreferenceChange('theme', 'dark')}
                       >
-                        <div className='bg-gray-900 rounded-md w-24 h-16 flex items-center justify-center text-white'>
-                          <span className='text-xs'>Dark</span>
+                        <div className='bg-gray-900 rounded-md w-24 h-16 flex items-center justify-center'>
+                          <span className='text-xs text-white'>Dark</span>
                         </div>
                       </div>
                       <div
@@ -622,21 +684,10 @@ export default function AdminProfile() {
                         <div>
                           <p className='font-medium'>Production Key</p>
                           <p className='text-sm text-gray-500'>
-                            Created 2 months ago
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant='outline' size='sm'>
-                        Regenerate
-                      </Button>
-                    </div>
-                    <div className='flex items-center justify-between p-3 bg-gray-50 rounded-lg'>
-                      <div className='flex items-center gap-3'>
-                        <FaKey className='text-indigo-600' />
-                        <div>
-                          <p className='font-medium'>Sandbox Key</p>
-                          <p className='text-sm text-gray-500'>
-                            Created 1 week ago
+                            Created{' '}
+                            {user.created_at
+                              ? new Date(user.created_at).toLocaleDateString()
+                              : 'Unknown'}
                           </p>
                         </div>
                       </div>
@@ -667,27 +718,15 @@ export default function AdminProfile() {
                     {[
                       {
                         id: 1,
-                        action: 'Updated profile information',
-                        date: '2023-05-15T14:32:00Z',
+                        action: 'Profile updated',
+                        date: user.updated_at || new Date().toISOString(),
                         icon: <FaEdit className='text-indigo-600' />,
                       },
                       {
                         id: 2,
-                        action: 'Changed password',
-                        date: '2023-05-10T09:15:00Z',
-                        icon: <FaLock className='text-green-600' />,
-                      },
-                      {
-                        id: 3,
-                        action: 'Viewed sensitive report',
-                        date: '2023-05-05T16:45:00Z',
-                        icon: <FaChartLine className='text-yellow-600' />,
-                      },
-                      {
-                        id: 4,
-                        action: 'Logged in from new device',
-                        date: '2023-04-28T11:20:00Z',
-                        icon: <FaShieldAlt className='text-blue-600' />,
+                        action: 'Logged in',
+                        date: user.created_at || new Date().toISOString(),
+                        icon: <FaShieldAlt className='text-green-600' />,
                       },
                     ].map((item) => (
                       <div

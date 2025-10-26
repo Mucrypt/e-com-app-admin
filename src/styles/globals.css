@@ -125,8 +125,7 @@
   }
 }
 
-/* Additional styles for OrdersDashboard 
-*/
+/* Additional styles for OrdersDashboard */
 .btn {
   @apply px-4 py-2 rounded-md border transition-colors duration-200 font-medium text-sm;
 }
@@ -157,4 +156,366 @@
 
 .card-content {
   @apply p-6;
+}
+
+/* Add these styles to your globals.css */
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ensure images load properly */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix for Next.js Image component */
+.next-image {
+  position: relative !important;
+}
+
+/* Product image container fixes */
+.product-image-container {
+  position: relative;
+  width: 100%;
+  height: 16rem; /* 64 in Tailwind = 16rem */
+  background-color: #f9fafb;
+  overflow: hidden;
+}
+
+/* Ensure images fill their containers properly */
+.product-image {
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-image:hover {
+  transform: scale(1.05);
+}
+
+/* Fix for Next.js Image component in product cards */
+.next-image-fix {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Skeleton Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+}
+
+/* Enhanced pulse animation */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Skeleton specific styles */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(243, 244, 246, 0) 0%,
+    rgba(243, 244, 246, 0.8) 50%,
+    rgba(243, 244, 246, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Add to your globals.css */
+
+/* Smooth transitions for filter sidebar */
+.filter-sidebar {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Product card hover animations */
+.product-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+}
+
+/* Loading animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+/* Grid to list transition */
+.view-transition {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile filter overlay */
+@media (max-width: 1024px) {
+  .mobile-filter-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    transition: opacity 0.3s ease-in-out;
+  }
+}
+
+/* Add these styles at the end of your existing CSS */
+
+/* Fix for Next.js Image component in grid view */
+.product-grid-image {
+  position: relative !important;
+  width: 100% !important;
+  height: 16rem !important; /* h-64 = 16rem */
+  overflow: hidden !important;
+  background-color: #f3f4f6 !important;
+}
+
+.product-grid-image img {
+  object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure images display correctly */
+[data-nextjs-image] {
+  position: relative !important;
+}
+
+/* Fix for aspect-square issues */
+.aspect-square img {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Override any conflicting styles */
+.product-card .next-image {
+  position: relative !important;
+  display: block !important;
+}
+
+/* Ensure proper image rendering */
+img[data-nimg='fill'] {
+  position: absolute !important;
+  height: 100% !important;
+  width: 100% !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  color: transparent !important;
+  object-fit: cover !important;
+}
+
+/* Add this at the end of your globals.css file */
+
+/* Force image visibility in product cards */
+.group:hover img[data-nimg='fill'] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 1 !important;
+}
+
+/* Ensure the hover overlay doesn't cover the image */
+.group .absolute.inset-0 {
+  pointer-events: none;
+}
+
+.group .absolute.inset-0 button {
+  pointer-events: auto;
+}
+
+/* Remove any dark overlay by default */
+.group .bg-black.bg-opacity-0 {
+  background-color: transparent !important;
+}
+
+/* Add these styles to your globals.css */
+
+/* Better product card hover effects */
+.product-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card-hover:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Smooth button animations */
+.action-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-button:hover {
+  transform: scale(1.1);
+}
+
+/* Remove the problematic overlay styles */
+.group .bg-black.bg-opacity-30 {
+  background-color: transparent !important;
+}
+
+/* Better gradient overlay */
+.gradient-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    transparent 100%
+  );
+}
+
+/* Add after your existing styles */
+
+/* Responsive Typography */
+.responsive-text {
+  @apply text-sm sm:text-base lg:text-lg;
+}
+
+.responsive-heading {
+  @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
+}
+
+.responsive-title {
+  @apply text-2xl sm:text-3xl lg:text-4xl xl:text-5xl;
+}
+
+.responsive-subtitle {
+  @apply text-lg sm:text-xl lg:text-2xl;
+}
+
+/* Responsive Spacing */
+.responsive-padding {
+  @apply p-4 sm:p-6 lg:p-8 xl:p-10;
+}
+
+.responsive-margin {
+  @apply m-4 sm:m-6 lg:m-8 xl:m-10;
+}
+
+.responsive-gap {
+  @apply gap-4 sm:gap-6 lg:gap-8 xl:gap-10;
+}
+
+/* Responsive Containers */
+.responsive-container {
+  @apply w-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.responsive-section {
+  @apply py-8 sm:py-12 lg:py-16 xl:py-20;
+}
+
+/* Responsive Cards */
+.responsive-card {
+  @apply rounded-lg sm:rounded-xl lg:rounded-2xl shadow-sm hover:shadow-md transition-shadow;
+}
+
+.responsive-card-padding {
+  @apply p-4 sm:p-6 lg:p-8;
+}
+
+/* Responsive Buttons */
+.responsive-button {
+  @apply px-4 py-2 sm:px-6 sm:py-3 lg:px-8 lg:py-4 text-sm sm:text-base lg:text-lg rounded-lg sm:rounded-xl;
+}
+
+/* Responsive Images */
+.responsive-image {
+  @apply w-full h-auto object-cover rounded-lg sm:rounded-xl;
+}
+
+/* Responsive Grid Auto-fit */
+.responsive-grid-auto {
+  @apply grid gap-4 sm:gap-6 lg:gap-8;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Mobile-first responsive utilities */
+.mobile-stack {
+  @apply flex flex-col lg:flex-row;
+}
+
+.mobile-center {
+  @apply text-center lg:text-left;
+}
+
+.mobile-full {
+  @apply w-full lg:w-auto;
+}
+
+/* Animation utilities for responsive */
+.responsive-hover {
+  @apply transition-all duration-300 hover:scale-105 hover:shadow-lg;
+}
+
+/* Responsive modal/drawer */
+.responsive-modal {
+  @apply fixed inset-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:transform lg:-translate-x-1/2 lg:-translate-y-1/2;
+  @apply w-full h-full lg:w-auto lg:h-auto lg:max-w-lg lg:max-h-[90vh];
 }

@@ -24,6 +24,7 @@ import {
   FaLayerGroup,
   FaProductHunt,
   FaChartLine,
+  FaStar,
 } from 'react-icons/fa'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -169,7 +170,7 @@ const SuperAdminSidebar = () => {
                     <span>Products</span>
                   </span>
                 </Link>
-               
+
                 <Link
                   href='/superadmin/content/blogs'
                   className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
@@ -177,6 +178,15 @@ const SuperAdminSidebar = () => {
                   <span className='flex items-center'>
                     <FaFileAlt className='mr-2 text-sm' />
                     <span>Blog Management</span>
+                  </span>
+                </Link>
+                <Link
+                  href='/superadmin/content/featured-products'
+                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                >
+                  <span className='flex items-center'>
+                    <FaStar className='mr-2 text-sm' />
+                    <span>Featured Products</span>
                   </span>
                 </Link>
                 {/* Add more content links here as needed */}

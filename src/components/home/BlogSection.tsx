@@ -12,7 +12,7 @@ const blogPosts = [
     title: 'Modern Minimalism: Transforming Small Spaces',
     excerpt:
       'Discover how to maximize your living area with smart furniture choices and minimalist design principles that create the illusion of space.',
-    image: '/images/blog/minimalism.jpg',
+    image: 'https://picsum.photos/id/60/800',
     category: 'Interior Design',
     readTime: '6 min read',
     author: 'Emma Davis',
@@ -26,7 +26,7 @@ const blogPosts = [
     title: 'Sustainable Furniture: The Future of Home Decor',
     excerpt:
       'Explore eco-friendly materials and sustainable practices that are revolutionizing the furniture industry while protecting our planet.',
-    image: '/images/blog/sustainable.jpg',
+    image: 'https://picsum.photos/id/60/9',
     category: 'Sustainability',
     readTime: '8 min read',
     author: 'Michael Chen',
@@ -40,7 +40,7 @@ const blogPosts = [
     title: 'Color Psychology in Home Design',
     excerpt:
       'Learn how different colors affect mood and behavior, and how to choose the perfect palette for each room in your home.',
-    image: '/images/blog/color-psychology.jpg',
+    image: 'https://picsum.photos/id/60/10',
     category: 'Design Tips',
     readTime: '5 min read',
     author: 'Sophia Williams',
@@ -54,7 +54,7 @@ const blogPosts = [
     title: 'Smart Home Integration with Modern Furniture',
     excerpt:
       'How to seamlessly incorporate technology into your furniture for a connected, convenient, and futuristic living experience.',
-    image: '/images/blog/smart-home.jpg',
+    image: 'https://picsum.photos/id/60/8',
     category: 'Technology',
     readTime: '7 min read',
     author: 'Alex Rodriguez',
@@ -68,7 +68,7 @@ const blogPosts = [
     title: 'The Art of Mixing Vintage and Contemporary',
     excerpt:
       'Master the technique of blending antique pieces with modern furniture to create a unique and timeless interior aesthetic.',
-    image: '/images/blog/vintage-modern.jpg',
+    image: 'https://picsum.photos/id/60/20',
     category: 'Style Guide',
     readTime: '9 min read',
     author: 'Lisa Thompson',
@@ -82,7 +82,7 @@ const blogPosts = [
     title: 'Ergonomic Home Office Setup for Productivity',
     excerpt:
       'Create the perfect work-from-home environment with ergonomic furniture that boosts productivity and supports your wellbeing.',
-    image: '/images/blog/home-office.jpg',
+    image: 'https://picsum.photos/id/60/200',
     category: 'Workspace',
     readTime: '6 min read',
     author: 'David Park',

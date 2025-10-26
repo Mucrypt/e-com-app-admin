@@ -20,11 +20,54 @@ export default function SuperAdminTopbar() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
-  // Dummy user data for demonstration
-  const user = {
-    name: 'Super Admin',
-    email: 'admin@example.com',
+  const [user, setUser] = useState({
+    name: 'Loading...',
+    email: '',
     avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
+  })
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    fetchUserData()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        setUser({
+          name: data.profile?.full_name || data.user?.email || 'Admin User',
+          email: data.user?.email || '',
+          avatar:
+            data.profile?.avatar_url ||
+            'https://randomuser.me/api/portraits/men/75.jpg',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        cache: 'no-store',
+      })
+
+      // Clear cookies
+      document.cookie = 'sb-access-token=; Max-Age=0; path=/;'
+      document.cookie = 'sb-refresh-token=; Max-Age=0; path=/;'
+
+      if (response.ok) {
+        window.location.replace('/Authentication')
+      } else {
+        throw new Error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   const toggleNotification = () => {
@@ -347,10 +390,7 @@ export default function SuperAdminTopbar() {
                   </div>
                   <div className='p-2 border-t border-superadmin-100'>
                     <button
-                      onClick={() => {
-                        // Handle logout logic here
-                        console.log('Logout clicked')
-                      }}
+                      onClick={handleLogout}
                       className='flex items-center space-x-2 w-full p-2 text-sm text-red-600 hover:bg-red-50 rounded-md font-medium transition-colors duration-150'
                     >
                       <FaSignOutAlt />
