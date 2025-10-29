@@ -101,7 +101,7 @@ const Navbar: React.FC = () => {
 
             {/* Wishlist - Always visible */}
             <Link
-              href='/Wishlist'
+              href='/wishlist'
               className='hover:text-black flex flex-col items-center'
             >
               <FaHeart className='text-gray-700 h-6 w-6' />

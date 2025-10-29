@@ -13,7 +13,10 @@ import {
   FaChevronRight,
   FaTh,
   FaBars,
+  FaSpinner,
+  FaCheck,
 } from 'react-icons/fa'
+import { useWishlist } from '@/hooks/useWishlist'
 
 interface Product {
   id: string
@@ -84,6 +87,22 @@ const CategoryPageContent: React.FC = () => {
     inStock: false,
     onSale: false,
   })
+
+  // Wishlist functionality
+  const { addToWishlist, isInWishlist, loading: wishlistLoading } = useWishlist()
+  const [wishlistOperations, setWishlistOperations] = useState<Set<string>>(new Set())
+  const [wishlistFeedback, setWishlistFeedback] = useState<{[key: string]: 'success' | 'error'}>({})
+
+  // Helper function to show feedback
+  const showWishlistFeedback = (productId: string, type: 'success' | 'error') => {
+    setWishlistFeedback(prev => ({ ...prev, [productId]: type }))
+    setTimeout(() => {
+      setWishlistFeedback(prev => {
+        const { [productId]: _, ...rest } = prev
+        return rest
+      })
+    }, 2000)
+  }
 
   // Helper function to get product image
   const getProductImage = (product: Product): string => {
@@ -194,11 +213,52 @@ const CategoryPageContent: React.FC = () => {
       router.push(`/products/${product.id}`)
     }
 
-    const handleAddToWishlist = (e: React.MouseEvent) => {
+    const handleAddToWishlist = async (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      console.log('❤️ Add to wishlist clicked for:', product.name)
-      // Add wishlist functionality here
+      
+      // Check if already in wishlist
+      if (isInWishlist(product.id)) {
+        console.log('❤️ Product already in wishlist:', product.name)
+        showWishlistFeedback(product.id, 'error')
+        return
+      }
+
+      // Check if operation is already in progress
+      if (wishlistOperations.has(product.id)) {
+        return
+      }
+
+      try {
+        console.log('❤️ Adding to wishlist:', product.name)
+        
+        // Mark operation as in progress
+        setWishlistOperations(prev => new Set(prev.add(product.id)))
+
+        const result = await addToWishlist({
+          product_id: product.id,
+          notes: `Added from ${currentCategory?.name || 'products'} page`,
+          added_from: 'category_page'
+        })
+
+        if (result) {
+          console.log('✅ Successfully added to wishlist:', product.name)
+          showWishlistFeedback(product.id, 'success')
+        } else {
+          console.log('❌ Failed to add to wishlist:', product.name)
+          showWishlistFeedback(product.id, 'error')
+        }
+      } catch (error) {
+        console.error('❌ Error adding to wishlist:', error)
+        showWishlistFeedback(product.id, 'error')
+      } finally {
+        // Remove operation from progress
+        setWishlistOperations(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(product.id)
+          return newSet
+        })
+      }
     }
 
     const handleAddToCart = (e: React.MouseEvent) => {
@@ -210,172 +270,136 @@ const CategoryPageContent: React.FC = () => {
 
     if (isListView) {
       return (
-        <Link href={`/products/${product.id}`} className='block'>
-          <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden product-card-hover group cursor-pointer hover:shadow-lg transition-all duration-300'>
-            {/* List view content - same as before but with event handlers */}
-            <div className='flex'>
-              <div className='w-48 h-48 flex-shrink-0'>
-                <Image
-                  src={productImage}
-                  alt={product.name}
-                  width={192}
-                  height={192}
-                  className='w-full h-full object-cover'
-                />
-              </div>
-              <div className='flex-1 p-6'>
-                <div className='flex justify-between items-start mb-4'>
-                  <div className='flex-1'>
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden product-card-hover group cursor-pointer hover:shadow-lg transition-all duration-300'>
+          <div className='flex'>
+            {/* Product Image */}
+            <div className='w-48 h-48 flex-shrink-0 relative' onClick={handleQuickView}>
+              <Image
+                src={productImage}
+                alt={product.name}
+                width={192}
+                height={192}
+                className='w-full h-full object-cover'
+              />
+              
+              {/* Wishlist Button - Top Right Corner of Image */}
+              <button
+                className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-300 shadow-lg z-30 ${
+                  isInWishlist(product.id)
+                    ? 'bg-red-500 text-white'
+                    : 'bg-white/90 backdrop-blur-sm text-red-500 hover:bg-red-500 hover:text-white'
+                } ${
+                  wishlistOperations.has(product.id) ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+                aria-label='Add to wishlist'
+                title={isInWishlist(product.id) ? 'In wishlist' : 'Add to wishlist'}
+                onClick={handleAddToWishlist}
+                disabled={wishlistOperations.has(product.id)}
+              >
+                {wishlistOperations.has(product.id) ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                ) : (
+                  <FaHeart className={`w-4 h-4 ${isInWishlist(product.id) ? 'text-white' : ''}`} />
+                )}
+                {wishlistFeedback[product.id] && (
+                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-40">
+                    {wishlistFeedback[product.id] === 'success' ? '✓ Added to wishlist!' : '✗ Error'}
+                  </div>
+                )}
+              </button>
+
+              {/* Badges */}
+              {hasDiscount && (
+                <div className='absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium z-20'>
+                  -{discountPercentage}%
+                </div>
+              )}
+
+              {product.stock_quantity <= 0 && (
+                <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-10'>
+                  <span className='bg-red-500 text-white px-3 py-1 rounded text-sm font-semibold'>
+                    Out of Stock
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Product Details */}
+            <div className='flex-1 p-6'>
+              <div className='flex justify-between items-start mb-4'>
+                <div className='flex-1'>
+                  <Link href={`/products/${product.id}`}>
                     <h3 className='text-xl font-semibold text-gray-900 hover:text-indigo-600 transition-colors mb-2'>
                       {product.name}
                     </h3>
-                    {product.categories && (
-                      <span className='inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm'>
-                        {product.categories.name}
-                      </span>
-                    )}
-                  </div>
-                  <div className='flex space-x-2'>
-                    <button
-                      className='bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 transition-colors shadow border'
-                      aria-label='Quick view'
-                      title='Quick view'
-                      onClick={handleQuickView}
-                    >
-                      <FaEye className='w-4 h-4' />
-                    </button>
-                    <button
-                      className='bg-white text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors shadow border'
-                      aria-label='Add to wishlist'
-                      title='Add to wishlist'
-                      onClick={handleAddToWishlist}
-                    >
-                      <FaHeart className='w-4 h-4' />
-                    </button>
-                    <button
-                      className='bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-colors shadow'
-                      aria-label='Add to cart'
-                      title='Add to cart'
-                      onClick={handleAddToCart}
-                    >
-                      <FaShoppingCart className='w-4 h-4' />
-                    </button>
-                  </div>
-                </div>
-
-                {product.short_description && (
-                  <p className='text-gray-600 mb-4 line-clamp-2'>
-                    {product.short_description}
-                  </p>
-                )}
-
-                {product.rating && (
-                  <div className='flex items-center mb-4'>
-                    <div className='flex items-center'>
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.floor(product.rating!)
-                              ? 'text-yellow-400'
-                              : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className='text-sm text-gray-600 ml-2'>
-                      ({product.review_count || 0} reviews)
+                  </Link>
+                  {product.categories && (
+                    <span className='inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-sm'>
+                      {product.categories.name}
                     </span>
-                  </div>
-                )}
-
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center space-x-2'>
-                    <span className='text-2xl font-bold text-gray-900'>
-                      ${product.price.toFixed(2)}
-                    </span>
-                    {hasDiscount && (
-                      <span className='text-lg text-gray-500 line-through'>
-                        ${product.original_price!.toFixed(2)}
-                      </span>
-                    )}
-                    {hasDiscount && (
-                      <span className='bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium'>
-                        -{discountPercentage}% OFF
-                      </span>
-                    )}
-                  </div>
-
-                  <div className='flex items-center text-sm text-gray-600'>
-                    <span
-                      className={`px-2 py-1 rounded ${
-                        product.stock_quantity > 0
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {product.stock_quantity > 0 ? 'In Stock' : 'Out of Stock'}
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
-        </Link>
-      )
-    }
 
-    // Grid view
-    return (
-      <Link href={`/products/${product.id}`} className='block'>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer'>
-          <div className='relative w-full h-64 overflow-hidden'>
-            <Image
-              src={productImage}
-              alt={product.name}
-              fill
-              className='object-cover group-hover:scale-105 transition-transform duration-300'
-              sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
-              priority={false}
-              unoptimized={true}
-            />
+              {product.short_description && (
+                <p className='text-gray-600 mb-4 line-clamp-2'>
+                  {product.short_description}
+                </p>
+              )}
 
-            {hasDiscount && (
-              <div className='absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium z-30'>
-                -{discountPercentage}%
-              </div>
-            )}
+              {product.rating && (
+                <div className='flex items-center mb-4'>
+                  <div className='flex text-yellow-400'>
+                    {[...Array(5)].map((_, i) => (
+                      <FaStar
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < Math.floor(product.rating!)
+                            ? 'text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className='text-sm text-gray-600 ml-2'>
+                    ({product.review_count || 0} reviews)
+                  </span>
+                </div>
+              )}
 
-            {product.is_featured && (
-              <div className='absolute top-3 right-3 bg-indigo-500 text-white px-2 py-1 rounded-md text-xs font-medium z-30'>
-                Featured
-              </div>
-            )}
-
-            <div className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center z-20'>
-              <div className='bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-white/20 transform scale-90 group-hover:scale-100 transition-transform duration-300'>
-                <div className='flex space-x-3'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center space-x-2'>
+                  <span className='text-2xl font-bold text-gray-900'>
+                    ${product.price.toFixed(2)}
+                  </span>
+                  {hasDiscount && (
+                    <span className='text-lg text-gray-500 line-through'>
+                      ${product.original_price!.toFixed(2)}
+                    </span>
+                  )}
+                  <div className='ml-4'>
+                    {product.stock_quantity > 0 ? (
+                      <span className='text-green-600 font-medium'>In Stock</span>
+                    ) : (
+                      <span className='text-red-600 font-medium'>Out of Stock</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className='flex space-x-2'>
+                  <Link href={`/products/${product.id}`}>
+                    <button className='bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center'>
+                      <FaEye className='w-4 h-4 mr-2' />
+                      View Details
+                    </button>
+                  </Link>
                   <button
-                    className='bg-gray-100 text-gray-800 p-2 rounded-full hover:bg-gray-200 transition-colors'
-                    aria-label='Quick view'
-                    title='Quick view'
-                    onClick={handleQuickView}
-                  >
-                    <FaEye className='w-4 h-4' />
-                  </button>
-                  <button
-                    className='bg-red-50 text-red-600 p-2 rounded-full hover:bg-red-100 transition-colors'
-                    aria-label='Add to wishlist'
-                    title='Add to wishlist'
-                    onClick={handleAddToWishlist}
-                  >
-                    <FaHeart className='w-4 h-4' />
-                  </button>
-                  <button
-                    className='bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-colors'
-                    aria-label='Add to cart'
-                    title='Add to cart'
+                    className='bg-gray-100 text-gray-700 p-2 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     onClick={handleAddToCart}
+                    disabled={product.stock_quantity <= 0}
+                    title="Add to Cart"
+                    aria-label="Add to Cart"
                   >
                     <FaShoppingCart className='w-4 h-4' />
                   </button>
@@ -383,47 +407,152 @@ const CategoryPageContent: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )
+    }
 
-          <div className='p-4'>
-            <h3 className='font-semibold text-gray-900 hover:text-indigo-600 transition-colors mb-2 line-clamp-2'>
-              {product.name}
-            </h3>
+    // Grid view
+    return (
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer'>
+        {/* Product Image */}
+        <div className='relative w-full h-64 overflow-hidden' onClick={handleQuickView}>
+          <Image
+            src={productImage}
+            alt={product.name}
+            fill
+            className='object-cover group-hover:scale-105 transition-transform duration-300'
+            sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
+            priority={false}
+            unoptimized={true}
+          />
 
-            {product.rating && (
-              <div className='flex items-center mb-2'>
-                <div className='flex items-center'>
-                  {[...Array(5)].map((_, i) => (
-                    <FaStar
-                      key={i}
-                      className={`w-3 h-3 ${
-                        i < Math.floor(product.rating!)
-                          ? 'text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className='text-xs text-gray-600 ml-1'>
-                  ({product.review_count || 0})
-                </span>
+          {/* Badges */}
+          {hasDiscount && (
+            <div className='absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium z-20'>
+              -{discountPercentage}%
+            </div>
+          )}
+
+          {product.is_featured && (
+            <div className='absolute top-3 right-3 bg-indigo-500 text-white px-2 py-1 rounded-md text-xs font-medium z-20'>
+              Featured
+            </div>
+          )}
+
+          {/* Wishlist Button - Top Right Corner */}
+          <button
+            className={`absolute ${product.is_featured ? 'top-14 right-3' : 'top-3 right-3'} p-2 rounded-full transition-all duration-300 shadow-lg z-30 ${
+              isInWishlist(product.id)
+                ? 'bg-red-500 text-white transform scale-110'
+                : 'bg-white/90 backdrop-blur-sm text-red-500 hover:bg-red-500 hover:text-white hover:scale-110'
+            } ${
+              wishlistOperations.has(product.id) ? 'opacity-75 cursor-not-allowed' : ''
+            }`}
+            aria-label='Add to wishlist'
+            title={isInWishlist(product.id) ? 'In wishlist' : 'Add to wishlist'}
+            onClick={handleAddToWishlist}
+            disabled={wishlistOperations.has(product.id)}
+          >
+            {wishlistOperations.has(product.id) ? (
+              <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+            ) : (
+              <FaHeart className={`w-4 h-4 ${isInWishlist(product.id) ? 'text-white' : ''}`} />
+            )}
+            {wishlistFeedback[product.id] && (
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap z-40">
+                {wishlistFeedback[product.id] === 'success' ? '✓ Added to wishlist!' : '✗ Error adding to wishlist'}
               </div>
             )}
+          </button>
 
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-2'>
-                <span className='text-lg font-bold text-gray-900'>
-                  ${product.price.toFixed(2)}
-                </span>
-                {hasDiscount && (
-                  <span className='text-sm text-gray-500 line-through'>
-                    ${product.original_price!.toFixed(2)}
-                  </span>
-                )}
+          {/* Stock Status Overlay */}
+          {product.stock_quantity <= 0 && (
+            <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-10'>
+              <span className='bg-red-500 text-white px-4 py-2 rounded-lg font-semibold'>
+                Out of Stock
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Product Details */}
+        <div className='p-4'>
+          {/* Product Name and Category */}
+          <div className='mb-3'>
+            <Link href={`/products/${product.id}`}>
+              <h3 className='text-lg font-semibold text-gray-900 hover:text-indigo-600 transition-colors line-clamp-2 mb-1'>
+                {product.name}
+              </h3>
+            </Link>
+            {product.categories && (
+              <span className='inline-block bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs'>
+                {product.categories.name}
+              </span>
+            )}
+          </div>
+
+          {/* Rating */}
+          {product.rating && (
+            <div className='flex items-center mb-3'>
+              <div className='flex text-yellow-400'>
+                {[...Array(5)].map((_, i) => (
+                  <FaStar
+                    key={i}
+                    className={`w-3 h-3 ${
+                      i < Math.floor(product.rating!)
+                        ? 'text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
               </div>
+              <span className='text-sm text-gray-600 ml-1'>
+                ({product.review_count || 0})
+              </span>
+            </div>
+          )}
+
+          {/* Price and Stock */}
+          <div className='flex items-center justify-between mb-4'>
+            <div className='flex items-center space-x-2'>
+              <span className='text-xl font-bold text-gray-900'>
+                ${product.price.toFixed(2)}
+              </span>
+              {hasDiscount && (
+                <span className='text-sm text-gray-500 line-through'>
+                  ${product.original_price!.toFixed(2)}
+                </span>
+              )}
+            </div>
+            <div className='text-sm'>
+              {product.stock_quantity > 0 ? (
+                <span className='text-green-600 font-medium'>In Stock</span>
+              ) : (
+                <span className='text-red-600 font-medium'>Out of Stock</span>
+              )}
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className='flex space-x-2'>
+            <Link href={`/products/${product.id}`} className='flex-1'>
+              <button className='w-full bg-indigo-600 text-white py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center'>
+                <FaEye className='w-4 h-4 mr-2' />
+                View Details
+              </button>
+            </Link>
+            <button
+              className='bg-gray-100 text-gray-700 p-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              onClick={handleAddToCart}
+              disabled={product.stock_quantity <= 0}
+              title="Add to Cart"
+              aria-label="Add to Cart"
+            >
+              <FaShoppingCart className='w-4 h-4' />
+            </button>
+          </div>
         </div>
-      </Link>
+      </div>
     )
   }
 

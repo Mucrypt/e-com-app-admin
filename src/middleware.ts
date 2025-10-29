@@ -11,6 +11,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Handle case-sensitive route redirects
+  if (request.nextUrl.pathname === '/Wishlist') {
+    return NextResponse.redirect(new URL('/wishlist', request.url))
+  }
+
   // For now, just pass through all requests to avoid Edge Runtime issues
   // You can implement auth logic here later using compatible methods
   return NextResponse.next()
