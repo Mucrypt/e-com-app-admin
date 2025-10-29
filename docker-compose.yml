@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Only pass public environment variables as build args
+        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+    container_name: ecom-admin-app
+    ports:
+      - '3000:3000'
+    # Use secrets for sensitive data (Docker Compose v3.8+)
+    secrets:
+      - openai_api_key
+      - cloudinary_api_key
+      - cloudinary_api_secret
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      # Reference secrets by file path
+      - OPENAI_API_KEY_FILE=/run/secrets/openai_api_key
+      - CLOUDINARY_API_KEY_FILE=/run/secrets/cloudinary_api_key
+      - CLOUDINARY_API_SECRET_FILE=/run/secrets/cloudinary_api_secret
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+    volumes:
+      - ./public:/app/public:ro
+    networks:
+      - ecom-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/cache:noexec,nosuid,size=50m
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ecom-admin-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - ecom-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    container_name: ecom-admin-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecom-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+networks:
+  ecom-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+
+# Define secrets (create these files with actual values)
+secrets:
+  openai_api_key:
+    file: ./secrets/openai_api_key.txt
+  cloudinary_api_key:
+    file: ./secrets/cloudinary_api_key.txt
+  cloudinary_api_secret:
+    file: ./secrets/cloudinary_api_secret.txt

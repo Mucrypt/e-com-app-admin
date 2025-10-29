@@ -109,6 +109,27 @@ const BestSellingProducts: React.FC<BestSellingProductsProps> = ({
     return '/images/placeholder-product.jpg'
   }
 
+  const handleQuickView = (e: React.MouseEvent, productId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Quick view:', productId)
+    // Add your quick view logic here
+  }
+
+  const handleAddToWishlist = (e: React.MouseEvent, productId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Add to wishlist:', productId)
+    // Add your wishlist logic here
+  }
+
+  const handleAddToCart = (e: React.MouseEvent, productId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    console.log('Add to cart:', productId)
+    // Add your cart logic here
+  }
+
   if (loading) {
     return <BestSellingProductsSkeleton itemCount={limit} />
   }
@@ -162,119 +183,117 @@ const BestSellingProducts: React.FC<BestSellingProductsProps> = ({
             const imageUrl = getProductImage(product)
 
             return (
-              <div
-                key={product.id}
-                className='group relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200'
-              >
-                {/* Image Container */}
-                <div className='relative w-full h-64 bg-gray-50 overflow-hidden'>
-                  <Image
-                    src={imageUrl}
-                    alt={product.name}
-                    fill
-                    className='object-cover transition-transform duration-300 group-hover:scale-105'
-                    sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw'
-                    priority={index < 4}
-                    onError={(e) => {
-                      console.error(
-                        `Image failed to load for ${product.name}:`,
-                        imageUrl
-                      )
-                      const target = e.target as HTMLImageElement
-                      target.style.display = 'none'
-                    }}
-                  />
+              <div key={product.id} className='group'>
+                <Link
+                  href={`/products/${product.id}`}
+                  className='block bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 cursor-pointer'
+                >
+                  {/* Image Container */}
+                  <div className='relative w-full h-64 bg-gray-50 overflow-hidden'>
+                    <Image
+                      src={imageUrl}
+                      alt={product.name}
+                      fill
+                      className='object-cover transition-transform duration-300 group-hover:scale-105'
+                      sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw'
+                      priority={index < 4}
+                      onError={(e) => {
+                        console.error(
+                          `Image failed to load for ${product.name}:`,
+                          imageUrl
+                        )
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                      }}
+                    />
 
-                  {/* Best Seller Badge */}
-                  <div className='absolute top-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20 flex items-center space-x-1'>
-                    <FaCrown className='w-3 h-3' />
-                    <span>Best Seller</span>
+                    {/* Best Seller Badge */}
+                    <div className='absolute top-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20 flex items-center space-x-1'>
+                      <FaCrown className='w-3 h-3' />
+                      <span>Best Seller</span>
+                    </div>
+
+                    {/* Sale Badge */}
+                    {product.is_on_sale && product.original_price && (
+                      <div className='absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20'>
+                        -
+                        {getDiscountPercentage(
+                          product.original_price,
+                          product.price
+                        )}
+                        %
+                      </div>
+                    )}
+
+                    {/* Hover Overlay */}
+                    <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity duration-300 z-10'></div>
+
+                    {/* Hover Actions */}
+                    <div className='absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30'>
+                      <div className='flex space-x-2'>
+                        <button
+                          className='bg-white text-gray-800 p-3 rounded-full hover:bg-gray-100 transition-colors shadow-lg'
+                          onClick={(e) => handleQuickView(e, product.id)}
+                          title={`Quick view ${product.name}`}
+                        >
+                          <FaEye className='w-4 h-4' />
+                        </button>
+                        <button
+                          className='bg-white text-red-600 p-3 rounded-full hover:bg-red-50 transition-colors shadow-lg'
+                          onClick={(e) => handleAddToWishlist(e, product.id)}
+                          title={`Add ${product.name} to wishlist`}
+                        >
+                          <FaHeart className='w-4 h-4' />
+                        </button>
+                        <button
+                          className='bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors shadow-lg'
+                          onClick={(e) => handleAddToCart(e, product.id)}
+                          title={`Add ${product.name} to cart`}
+                        >
+                          <FaShoppingCart className='w-4 h-4' />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Sale Badge */}
-                  {product.is_on_sale && product.original_price && (
-                    <div className='absolute top-3 right-3 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold z-20'>
-                      -
-                      {getDiscountPercentage(
-                        product.original_price,
-                        product.price
-                      )}
-                      %
-                    </div>
-                  )}
-
-                  {/* Hover Overlay */}
-                  <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity duration-300 z-10'></div>
-
-                  {/* Hover Actions */}
-                  <div className='absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30'>
-                    <div className='flex space-x-2'>
-                      <button
-                        className='bg-white text-gray-800 p-3 rounded-full hover:bg-gray-100 transition-colors shadow-lg'
-                        onClick={() => console.log('Quick view:', product.id)}
-                        title={`Quick view ${product.name}`}
-                      >
-                        <FaEye className='w-4 h-4' />
-                      </button>
-                      <button
-                        className='bg-white text-red-600 p-3 rounded-full hover:bg-red-50 transition-colors shadow-lg'
-                        onClick={() =>
-                          console.log('Add to wishlist:', product.id)
-                        }
-                        title={`Add ${product.name} to wishlist`}
-                      >
-                        <FaHeart className='w-4 h-4' />
-                      </button>
-                      <button
-                        className='bg-indigo-600 text-white p-3 rounded-full hover:bg-indigo-700 transition-colors shadow-lg'
-                        onClick={() => console.log('Add to cart:', product.id)}
-                        title={`Add ${product.name} to cart`}
-                      >
-                        <FaShoppingCart className='w-4 h-4' />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Product Info */}
-                <div className='p-4'>
-                  <Link href={`/products/${product.id}`}>
+                  {/* Product Info */}
+                  <div className='p-4'>
                     <h3 className='font-semibold text-gray-900 mb-2 hover:text-indigo-600 transition-colors line-clamp-2'>
                       {product.name}
                     </h3>
-                  </Link>
 
-                  {product.rating && product.rating > 0 && (
-                    <div className='flex items-center space-x-1 mb-2'>
-                      <div className='flex items-center'>
-                        {[...Array(5)].map((_, i) => (
-                          <FaStar
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(product.rating || 0)
-                                ? 'text-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
+                    {product.rating && product.rating > 0 && (
+                      <div className='flex items-center space-x-1 mb-2'>
+                        <div className='flex items-center'>
+                          {[...Array(5)].map((_, i) => (
+                            <FaStar
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < Math.floor(product.rating || 0)
+                                  ? 'text-yellow-400'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className='text-sm text-gray-500'>
+                          ({product.review_count || 0})
+                        </span>
                       </div>
-                      <span className='text-sm text-gray-500'>
-                        ({product.review_count || 0})
-                      </span>
-                    </div>
-                  )}
-
-                  <div className='flex items-center space-x-2'>
-                    <span className='text-lg font-bold text-gray-900'>
-                      {formatPrice(product.price)}
-                    </span>
-                    {product.original_price && product.is_on_sale && (
-                      <span className='text-sm text-gray-500 line-through'>
-                        {formatPrice(product.original_price)}
-                      </span>
                     )}
+
+                    <div className='flex items-center space-x-2'>
+                      <span className='text-lg font-bold text-gray-900'>
+                        {formatPrice(product.price)}
+                      </span>
+                      {product.original_price && product.is_on_sale && (
+                        <span className='text-sm text-gray-500 line-through'>
+                          {formatPrice(product.original_price)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </Link>
               </div>
             )
           })}

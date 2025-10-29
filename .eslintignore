@@ -1,0 +1,10 @@
+# Ignore generated types and binary files
+src/types/database.types.ts
+src/supabase/types.ts
+*.d.ts
+node_modules/
+.next/
+out/
+build/
+dist/
+public/
