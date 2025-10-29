@@ -85,21 +85,23 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
 
-  webpack: (
-    config: Configuration,
-    {  }: { dev: boolean; isServer: boolean }
-  ) => {
-    // Ignore problematic files
-    config.module = config.module || {}
-    config.module.rules = config.module.rules || []
+  ...(process.env.NODE_ENV !== 'development' && {
+    webpack: (
+      config: Configuration,
+      {  }: { dev: boolean; isServer: boolean }
+    ) => {
+      // Ignore problematic files
+      config.module = config.module || {}
+      config.module.rules = config.module.rules || []
 
-    config.module.rules.push({
-      test: /src\/(types\/database\.types\.ts|supabase\/types\.ts)$/,
-      use: 'ignore-loader',
-    })
+      config.module.rules.push({
+        test: /src\/(types\/database\.types\.ts|supabase\/types\.ts)$/,
+        use: 'ignore-loader',
+      })
 
-    return config
-  },
+      return config
+    },
+  }),
 }
 
 export default nextConfig
