@@ -15,9 +15,8 @@ export default function Home() {
         <Hero />
 
         <section className='container mx-auto px-4 py-8'>
-         
           <HomePage />
-          {/* Add more professional content here as needed */}
+          
         </section>
         <SponsorsBrands />
       </main>

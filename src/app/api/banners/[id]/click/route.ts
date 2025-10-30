@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/server'
 
-
 interface RouteParams {
   params: {
     id: string
   }
 }
 
-
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Validate UUID format
     const uuidRegex =
@@ -25,10 +23,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const supabase = await createClient()
 
-    // For now, just verify the banner exists since click_count doesn't exist yet
-    const { error: fetchError } = await supabase
+    // Get current banner and increment click count
+    const { data: banner, error: fetchError } = await supabase
       .from('banners')
-      .select('id, title')
+      .select('id, title, click_count')
       .eq('id', id)
       .single()
 
@@ -37,16 +35,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Banner not found' }, { status: 404 })
     }
 
-    // For now, just log the click since we don't have click_count field yet
-   
-    // TODO: Once click_count field is added, uncomment the update logic below
-    /*
+    const newClickCount = (banner.click_count || 0) + 1
+
+    // Update click count
     const { error: updateError } = await supabase
       .from('banners')
       .update({
         click_count: newClickCount,
         updated_at: new Date().toISOString(),
-      } satisfies BannerUpdate)
+      })
       .eq('id', id)
 
     if (updateError) {
@@ -56,12 +53,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 500 }
       )
     }
-    */
+
+    console.log(`✅ Banner click tracked: ${banner.title} (${newClickCount} clicks)`)
 
     return NextResponse.json({
       success: true,
       message: 'Click tracked successfully',
       banner_id: id,
+      click_count: newClickCount,
     })
   } catch (error) {
     console.error('❌ Unexpected error in banner click tracking:', error)

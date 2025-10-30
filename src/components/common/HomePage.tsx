@@ -86,10 +86,35 @@ const HomePage: React.FC = () => {
       <FeaturedProducts limit={8} />
 
       {/* Promotional Banners Section */}
-      <PromotionalBanners />
+      <section className='py-16 bg-gradient-to-b from-gray-50 to-white'>
+        <div className='container mx-auto px-4'>
+          <PromotionalBanners 
+            layout="carousel"
+            limit={5}
+            autoPlay={true}
+            interval={6000}
+            showTitle={true}
+            title="Special Offers"
+            subtitle="Don't miss out on these amazing deals"
+          />
+        </div>
+      </section>
 
       {/* Best Selling Products Section */}
       <BestSellingProducts limit={8} />
+
+      {/* Additional Promotional Banners - Grid Layout */}
+      <section className='py-16 bg-white'>
+        <div className='container mx-auto px-4'>
+          <PromotionalBanners 
+            layout="grid"
+            limit={6}
+            showTitle={true}
+            title="Current Promotions"
+            subtitle="Explore all our ongoing deals and offers"
+          />
+        </div>
+      </section>
 
       {/* Blog Section */}
       <BlogSection />
