@@ -39,7 +39,7 @@ interface UseProductsResult {
 
 export default function SuperAdminProductPage() {
   const { products, loading, error, refetch } =
-    useProducts() as UseProductsResult
+    useProducts() as unknown as UseProductsResult
 
   // State management
   const [search, setSearch] = useState('')

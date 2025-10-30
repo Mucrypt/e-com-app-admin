@@ -25,6 +25,8 @@ import {
   FaProductHunt,
   FaChartLine,
   FaStar,
+ 
+  FaImage,
 } from 'react-icons/fa'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -33,7 +35,7 @@ import { useCategories } from '@/hooks/useCategories'
 const SuperAdminSidebar = () => {
   const [expandedSections, setExpandedSections] = useState({
     administration: true,
-    content: false,
+    content: true,
     analytics: false,
     system: false,
     marketing: false,
@@ -171,6 +173,16 @@ const SuperAdminSidebar = () => {
                   </span>
                 </Link>
 
+                 <Link
+                  href='/superadmin/content/banners'
+                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                >
+                  <div className='flex items-center space-x-2'>
+                    <FaImage className='text-sm' />
+                    <span>Banners</span>
+                  </div>
+                </Link>
+
                 <Link
                   href='/superadmin/content/blogs'
                   className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
@@ -184,11 +196,13 @@ const SuperAdminSidebar = () => {
                   href='/superadmin/content/featured-products'
                   className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
                 >
-                  <span className='flex items-center'>
-                    <FaStar className='mr-2 text-sm' />
+                  <div className='flex items-center space-x-2'>
+                    <FaStar className='text-sm' />
                     <span>Featured Products</span>
-                  </span>
+                  </div>
                 </Link>
+                
+               
                 {/* Add more content links here as needed */}
               </div>
             )}

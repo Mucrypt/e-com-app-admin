@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           .select('id, name')
           .eq('slug', category)
           .eq('is_active', true)
-          .single()
+          .maybeSingle()
 
         if (categoryError) {
           console.log('❌ API: Category lookup error:', categoryError)
