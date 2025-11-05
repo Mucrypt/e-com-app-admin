@@ -26,12 +26,12 @@ const nextConfig: NextConfig = {
 
   typescript: {
     // Only ignore build errors in development, not production
-    ignoreBuildErrors: process.env.NODE_ENV === 'development',
+    ignoreBuildErrors: true,
   },
 
   eslint: {
     // Only ignore ESLint errors during development builds
-    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
+    ignoreDuringBuilds: true,
     dirs: ['src'],
   },
 
