@@ -17,6 +17,8 @@ import {
   FaCheck,
 } from 'react-icons/fa'
 import { useWishlist } from '@/hooks/useWishlist'
+import PromotionalBanners from '@/components/home/PromotionalBanners'
+import CategoryBanners from '@/components/category/CategoryBanners'
 
 interface Product {
   id: string
@@ -104,25 +106,35 @@ const CategoryPageContent: React.FC = () => {
     }, 2000)
   }
 
-  // Helper function to get product image
-  const getProductImage = (product: Product): string => {
-    if (product.image_url && product.image_url.trim() !== '') {
+  // Helper function to get product image - only returns real images
+  const getProductImage = (product: Product): string | null => {
+    // Helper to check if URL is a placeholder
+    const isPlaceholderUrl = (url: string): boolean => {
+      return url.includes('placeholder') || 
+             url.includes('via.placeholder.com') ||
+             url.includes('placehold') ||
+             url.startsWith('data:image') ||
+             url.includes('placeholder-product')
+    }
+
+    if (product.image_url && product.image_url.trim() !== '' && !isPlaceholderUrl(product.image_url)) {
       return product.image_url
     }
 
     if (product.images) {
-      if (typeof product.images === 'string' && product.images.trim() !== '') {
+      if (typeof product.images === 'string' && product.images.trim() !== '' && !isPlaceholderUrl(product.images)) {
         return product.images
       }
       if (Array.isArray(product.images) && product.images.length > 0) {
         const firstImage = product.images[0]
-        if (firstImage && firstImage.trim() !== '') {
+        if (firstImage && firstImage.trim() !== '' && !isPlaceholderUrl(firstImage)) {
           return firstImage
         }
       }
     }
 
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjZjNmNGY2Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOWNhM2FmIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K'
+    // Return null instead of placeholder - let components handle no image state
+    return null
   }
 
   // Handle category change from sidebar
@@ -274,13 +286,32 @@ const CategoryPageContent: React.FC = () => {
           <div className='flex'>
             {/* Product Image */}
             <div className='w-48 h-48 flex-shrink-0 relative' onClick={handleQuickView}>
-              <Image
-                src={productImage}
-                alt={product.name}
-                width={192}
-                height={192}
-                className='w-full h-full object-cover'
-              />
+              {productImage ? (
+                <Image
+                  src={productImage}
+                  alt={product.name}
+                  width={192}
+                  height={192}
+                  className='w-full h-full object-cover'
+                />
+              ) : (
+                <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+                  <div className="text-gray-400 text-center">
+                    <svg 
+                      className="w-12 h-12 mx-auto mb-2" 
+                      fill="currentColor" 
+                      viewBox="0 0 20 20"
+                    >
+                      <path 
+                        fillRule="evenodd" 
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" 
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <p className="text-sm">No image</p>
+                  </div>
+                </div>
+              )}
               
               {/* Wishlist Button - Top Right Corner of Image */}
               <button
@@ -416,15 +447,34 @@ const CategoryPageContent: React.FC = () => {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 group cursor-pointer'>
         {/* Product Image */}
         <div className='relative w-full h-64 overflow-hidden' onClick={handleQuickView}>
-          <Image
-            src={productImage}
-            alt={product.name}
-            fill
-            className='object-cover group-hover:scale-105 transition-transform duration-300'
-            sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
-            priority={false}
-            unoptimized={true}
-          />
+          {productImage ? (
+            <Image
+              src={productImage}
+              alt={product.name}
+              fill
+              className='object-cover group-hover:scale-105 transition-transform duration-300'
+              sizes='(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw'
+              priority={false}
+              unoptimized={true}
+            />
+          ) : (
+            <div className='w-full h-full bg-gray-200 flex items-center justify-center'>
+              <div className="text-gray-400 text-center">
+                <svg 
+                  className="w-12 h-12 mx-auto mb-2" 
+                  fill="currentColor" 
+                  viewBox="0 0 20 20"
+                >
+                  <path 
+                    fillRule="evenodd" 
+                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" 
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p className="text-sm">No image</p>
+              </div>
+            </div>
+          )}
 
           {/* Badges */}
           {hasDiscount && (
@@ -921,6 +971,9 @@ const CategoryPageContent: React.FC = () => {
           </div>
         </div>
 
+        {/* Promotional Banners Section */}
+        <CategoryBanners currentCategory={currentCategory} />
+
         {/* Filters and Sort Bar */}
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-8'>
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0'>
@@ -1017,7 +1070,7 @@ const CategoryPageContent: React.FC = () => {
               </div>
             ) : products.length === 0 ? (
               <div className='text-center py-12'>
-                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-md mx-auto'>
+                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-8 max-w-md mx-auto mb-8'>
                   <p className='text-yellow-800'>
                     {currentCategory
                       ? `No products found in "${currentCategory.name}" category.`
@@ -1030,6 +1083,21 @@ const CategoryPageContent: React.FC = () => {
                     {currentCategory ? 'View All Products' : 'Clear Filters'}
                   </button>
                 </div>
+                
+                {/* Show alternative banners when no products found */}
+                <div className='mt-8'>
+                  <h3 className='text-xl font-semibold text-gray-900 mb-4'>
+                    Check out these special offers instead!
+                  </h3>
+                  <PromotionalBanners 
+                    layout="grid"
+                    limit={4}
+                    autoPlay={false}
+                    showTitle={false}
+                    bannerTypes={['flash_sale', 'new_arrival', 'featured']}
+                    className="no-products-banners"
+                  />
+                </div>
               </div>
             ) : (
               <div
@@ -1039,12 +1107,40 @@ const CategoryPageContent: React.FC = () => {
                     : 'space-y-6'
                 }
               >
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    isListView={viewMode === 'list'}
-                  />
+                {products.map((product, index) => (
+                  <React.Fragment key={product.id}>
+                    <ProductCard
+                      product={product}
+                      isListView={viewMode === 'list'}
+                    />
+                    {/* Insert inline banner every 8 products in grid view */}
+                    {viewMode === 'grid' && (index + 1) % 8 === 0 && index < products.length - 1 && (
+                      <div className='col-span-full my-8'>
+                        <PromotionalBanners 
+                          layout="grid"
+                          limit={2}
+                          autoPlay={false}
+                          showTitle={false}
+                          bannerTypes={['flash_sale', 'limited']}
+                          className="inline-product-banners"
+                        />
+                      </div>
+                    )}
+                    {/* Insert inline banner every 6 products in list view */}
+                    {viewMode === 'list' && (index + 1) % 6 === 0 && index < products.length - 1 && (
+                      <div className='my-8'>
+                        <PromotionalBanners 
+                          layout="carousel"
+                          limit={1}
+                          autoPlay={true}
+                          interval={5000}
+                          showTitle={false}
+                          bannerTypes={['promotion', 'featured']}
+                          className="inline-product-banners-list"
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             )}

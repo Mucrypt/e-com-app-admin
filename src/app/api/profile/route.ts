@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/supabase/server'
 
+// Add cache headers to reduce redundant requests
+const CACHE_HEADERS = {
+  'Cache-Control': 'private, max-age=60, s-maxage=60',
+  'Vary': 'Authorization',
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -12,7 +18,13 @@ export async function GET() {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Not authenticated' }, 
+        { 
+          status: 401,
+          headers: CACHE_HEADERS
+        }
+      )
     }
 
     // Fetch the user profile from the users table
@@ -26,11 +38,12 @@ export async function GET() {
       console.error('Profile fetch error:', profileError)
       return NextResponse.json(
         { error: 'Failed to fetch profile' },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: CACHE_HEADERS
+        }
       )
     }
-
-    //console.log('Profile data:', profile) // Add this for debugging
 
     return NextResponse.json({
       user: {
@@ -41,12 +54,17 @@ export async function GET() {
         created_at: user.created_at,
       },
       profile,
+    }, {
+      headers: CACHE_HEADERS
     })
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: CACHE_HEADERS
+      }
     )
   }
 }
@@ -62,18 +80,44 @@ export async function PUT(request: Request) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'Not authenticated' }, 
+        { 
+          status: 401,
+          headers: CACHE_HEADERS
+        }
+      )
     }
 
-    const updates = await request.json()
+    const updates: Record<string, any> = await request.json()
 
-    // Update the user profile
-    const { data, error } = await supabase
+    // Validate and sanitize updates
+    const allowedFields = [
+      'full_name', 
+      'username', 
+      'avatar_url', 
+      'phone', 
+      'address',
+      'preferences',
+      'phone_verified',
+      'email_verified'
+    ]
+    
+    const sanitizedUpdates: Record<string, any> = {}
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (allowedFields.includes(key) && value !== undefined) {
+        sanitizedUpdates[key] = value
+      }
+    }
+
+    // Add timestamp
+    sanitizedUpdates.updated_at = new Date().toISOString()
+
+    // Update the user profile - using any to bypass strict typing temporarily
+    const { data, error } = await (supabase as any)
       .from('users')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(sanitizedUpdates)
       .eq('id', user.id)
       .select()
       .single()
@@ -82,16 +126,25 @@ export async function PUT(request: Request) {
       console.error('Profile update error:', error)
       return NextResponse.json(
         { error: 'Failed to update profile' },
-        { status: 500 }
+        { 
+          status: 500,
+          headers: CACHE_HEADERS
+        }
       )
     }
 
-    return NextResponse.json({ profile: data })
+    return NextResponse.json(
+      { profile: data },
+      { headers: CACHE_HEADERS }
+    )
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: CACHE_HEADERS
+      }
     )
   }
 }

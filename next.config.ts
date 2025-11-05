@@ -6,8 +6,18 @@ const nextConfig: NextConfig = {
   output: 'standalone',
 
   experimental: {
-    optimizeCss: true,
+    // Temporarily disable CSS optimization to fix build issues
+    optimizeCss: false,
     optimizeServerReact: true,
+  },
+
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
   },
 
   compiler: {
@@ -15,13 +25,13 @@ const nextConfig: NextConfig = {
   },
 
   typescript: {
-    // Temporarily ignore build errors for problematic files
-    ignoreBuildErrors: true,
+    // Only ignore build errors in development, not production
+    ignoreBuildErrors: process.env.NODE_ENV === 'development',
   },
 
   eslint: {
-    // Temporarily ignore ESLint errors during builds
-    ignoreDuringBuilds: true,
+    // Only ignore ESLint errors during development builds
+    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
     dirs: ['src'],
   },
 
@@ -57,6 +67,123 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      // Placeholder images for development
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        pathname: '/**',
+      },
+      // Amazon image domains for scraped products
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images-na.ssl-images-amazon.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images-amazon.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images-eu.ssl-images-amazon.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images-fe.ssl-images-amazon.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ssl-images-amazon.com',
+        pathname: '/**',
+      },
+      // Alibaba image domains
+      {
+        protocol: 'https',
+        hostname: 'sc04.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ae01.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 's.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gd1.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gd2.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gd3.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gd4.alicdn.com',
+        pathname: '/**',
+      },
+      // AliExpress image domains
+      {
+        protocol: 'https',
+        hostname: 'ae01.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ae02.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ae03.alicdn.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ae04.alicdn.com',
+        pathname: '/**',
+      },
+      // eBay image domains
+      {
+        protocol: 'https',
+        hostname: 'i.ebayimg.com',
+        pathname: '/**',
+      },
+      // Walmart image domains
+      {
+        protocol: 'https',
+        hostname: 'i5.walmartimages.com',
+        pathname: '/**',
+      },
+      // Generic e-commerce domains
+      {
+        protocol: 'https',
+        hostname: 'cdn.shopify.com',
         pathname: '/**',
       },
     ],
@@ -98,6 +225,14 @@ const nextConfig: NextConfig = {
         test: /src\/(types\/database\.types\.ts|supabase\/types\.ts)$/,
         use: 'ignore-loader',
       })
+
+      // Fix punycode deprecation warning
+      if (config.resolve) {
+        config.resolve.fallback = {
+          ...config.resolve.fallback,
+          punycode: false,
+        }
+      }
 
       return config
     },

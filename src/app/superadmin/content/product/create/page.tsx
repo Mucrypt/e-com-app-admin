@@ -17,6 +17,7 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { uploadImageToCloudinary } from '@/lib/cloudinary'
 import { useCategories } from '@/hooks/useCategories'
+import { useProductsCache } from '@/hooks/useProducts'
 import Image from 'next/image'
 import ParentCategorySelector from '@/components/superAdmin/ParentCategorySelector'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
@@ -25,6 +26,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 export default function CreateProductPage() {
   const router = useRouter()
   const { categories } = useCategories()
+  const { invalidate: invalidateProductsCache } = useProductsCache()
   // Map categories to ensure parent_id is string | undefined
   const mappedCategories = categories.map((cat) => ({
     ...cat,
@@ -61,8 +63,8 @@ export default function CreateProductPage() {
     seo_keywords: '',
   })
 
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -120,25 +122,45 @@ export default function CreateProductPage() {
     }))
   }
 
-  // Image upload preview
+  // Multiple image upload handling
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Image size should be less than 2MB')
-        return
-      }
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result as string)
-      reader.readAsDataURL(file)
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      const validFiles: File[] = []
+      const newPreviews: string[] = []
+
+      files.forEach(file => {
+        if (file.size > 2 * 1024 * 1024) {
+          setError(`Image ${file.name} is too large. Maximum size is 2MB.`)
+          return
+        }
+        validFiles.push(file)
+        
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          newPreviews.push(reader.result as string)
+          if (newPreviews.length === validFiles.length) {
+            setImagePreviews(prev => [...prev, ...newPreviews])
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+
+      setImageFiles(prev => [...prev, ...validFiles])
     }
   }
 
-  const removeImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    setForm((prev) => ({ ...prev, image_url: '' }))
+  const removeImage = (index: number) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setImageFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const setMainImage = (index: number) => {
+    const mainImageUrl = imagePreviews[index]
+    setForm(prev => ({
+      ...prev,
+      image_url: mainImageUrl
+    }))
   }
 
   // Submit handler
@@ -146,12 +168,35 @@ export default function CreateProductPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    let imageUrl = form.image_url
 
     try {
-      if (imageFile) {
-        imageUrl = await uploadImageToCloudinary(imageFile)
+      // Upload all images to Cloudinary
+      const uploadedImageUrls: string[] = []
+      
+      if (imageFiles.length === 0) {
+        setError('Please select at least one image for the product.')
+        setLoading(false)
+        return
       }
+
+      for (const file of imageFiles) {
+        try {
+          const url = await uploadImageToCloudinary(file)
+          uploadedImageUrls.push(url)
+        } catch (err) {
+          console.error('Failed to upload image:', err)
+          if (err instanceof Error && err.message.includes('Cloudinary is not configured')) {
+            setError('Cloudinary is not configured. Please set up your Cloudinary credentials in environment variables.')
+          } else {
+            setError(`Failed to upload image: ${file.name}. ${err instanceof Error ? err.message : 'Unknown error'}`)
+          }
+          setLoading(false)
+          return
+        }
+      }
+
+      // Set main image (first uploaded image)
+      const mainImageUrl = uploadedImageUrls[0] || ''
 
       // Prepare product data
       const product = {
@@ -163,8 +208,8 @@ export default function CreateProductPage() {
         price: Number(form.price),
         original_price: Number(form.original_price) || Number(form.price),
         cost_price: Number(form.cost_price) || 0,
-        image_url: imageUrl,
-        images: form.images,
+        image_url: mainImageUrl,
+        images: uploadedImageUrls,
         category_id: form.category_id || null,
         is_active: form.is_active,
         in_stock: form.in_stock,
@@ -195,6 +240,9 @@ export default function CreateProductPage() {
       })
 
       if (!res.ok) throw new Error('Failed to create product')
+
+      // Invalidate products cache to refresh the list
+      invalidateProductsCache('products')
 
       setLoading(false)
       setSuccess('Product created successfully!')
@@ -481,55 +529,87 @@ export default function CreateProductPage() {
                     </div>
 
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                        Product Image
+                      <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                        Product Images
                       </label>
+                      
+                      {/* Images Grid */}
+                      {imagePreviews.length > 0 && (
+                        <div className='mb-4'>
+                          <h4 className='text-sm font-medium text-gray-600 dark:text-gray-400 mb-2'>
+                            Selected Images ({imagePreviews.length})
+                          </h4>
+                          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                            {imagePreviews.map((preview, index) => (
+                              <div key={index} className='relative group'>
+                                <Image
+                                  src={preview}
+                                  alt={`Product image ${index + 1}`}
+                                  width={150}
+                                  height={150}
+                                  className='w-full h-32 object-cover rounded-lg shadow-md'
+                                />
+                                
+                                {/* Image Actions */}
+                                <div className='absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2'>
+                                  <button
+                                    type='button'
+                                    onClick={() => setMainImage(index)}
+                                    className='px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors'
+                                    title='Set as main image'
+                                  >
+                                    Main
+                                  </button>
+                                  <button
+                                    type='button'
+                                    onClick={() => removeImage(index)}
+                                    className='px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors'
+                                    title='Remove image'
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                                
+                                {/* Main Image Indicator */}
+                                {index === 0 && (
+                                  <div className='absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded'>
+                                    Main
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Upload New Images */}
                       <div className='mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg'>
                         <div className='space-y-1 text-center'>
-                          {imagePreview ? (
-                            <div className='relative'>
-                              <Image
-                                src={imagePreview}
-                                alt='Product preview'
-                                width={192}
-                                height={192}
-                                className='mx-auto h-48 w-48 object-cover rounded-lg shadow-md'
+                          <FaCloudUploadAlt className='mx-auto h-12 w-12 text-gray-400' />
+                          <div className='flex text-sm text-gray-600 dark:text-gray-400'>
+                            <label
+                              htmlFor='product-images'
+                              className='relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none'
+                            >
+                              <span>Upload images</span>
+                              <input
+                                id='product-images'
+                                name='product-images'
+                                type='file'
+                                accept='image/*'
+                                multiple
+                                onChange={handleImageChange}
+                                className='sr-only'
                               />
-                              <button
-                                type='button'
-                                onClick={removeImage}
-                                className='absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2 shadow-lg hover:bg-red-600 transition-colors'
-                                aria-label='Remove image'
-                              >
-                                <FaTimes className='h-4 w-4' />
-                                <span className='sr-only'>Remove image</span>
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <FaCloudUploadAlt className='mx-auto h-12 w-12 text-gray-400' />
-                              <div className='flex text-sm text-gray-600 dark:text-gray-400'>
-                                <label
-                                  htmlFor='product-image'
-                                  className='relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none'
-                                >
-                                  <span>Upload a file</span>
-                                  <input
-                                    id='product-image'
-                                    name='product-image'
-                                    type='file'
-                                    accept='image/*'
-                                    onChange={handleImageChange}
-                                    className='sr-only'
-                                  />
-                                </label>
-                                <p className='pl-1'>or drag and drop</p>
-                              </div>
-                              <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                PNG, JPG, GIF up to 2MB
-                              </p>
-                            </>
-                          )}
+                            </label>
+                            <p className='pl-1'>or drag and drop</p>
+                          </div>
+                          <p className='text-xs text-gray-500 dark:text-gray-400'>
+                            PNG, JPG, GIF up to 2MB each. Select multiple files.
+                          </p>
+                          <p className='text-xs text-gray-500 dark:text-gray-400'>
+                            First image will be set as main product image.
+                          </p>
                         </div>
                       </div>
                     </div>

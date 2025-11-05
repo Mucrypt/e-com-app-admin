@@ -1,4 +1,3 @@
-// Next.js version of SuperAdminSidebar
 'use client'
 
 import {
@@ -25,30 +24,49 @@ import {
   FaProductHunt,
   FaChartLine,
   FaStar,
- 
   FaImage,
+  FaDownload,
 } from 'react-icons/fa'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useCategories } from '@/hooks/useCategories'
 
 const SuperAdminSidebar = () => {
+  const pathname = usePathname()
   const [expandedSections, setExpandedSections] = useState({
-    administration: true,
-    content: true,
+    administration: true, // Default expanded
+    content: true, // Default expanded  
     analytics: false,
     system: false,
     marketing: false,
   })
 
+  // Helper function to check if a link is active
+  const isActive = (href: string) => {
+    return pathname === href || pathname.startsWith(href + '/')
+  }
+
+  // Helper function to get link classes with active state
+  const getLinkClasses = (href: string, baseClasses: string) => {
+    const activeStyle = isActive(href) ? { backgroundColor: 'rgba(255, 0, 0, 0.3)' } : {}
+    return { className: baseClasses, style: activeStyle }
+  }
+
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }))
+    setExpandedSections((prev) => {
+      const newState = {
+        ...prev,
+        [section]: !prev[section],
+      }
+      console.log(`🔧 SuperAdminSidebar: Toggled ${section} to ${newState[section]}`)
+      return newState
+    })
   }
 
   useCategories()
+
+  console.log('🔧 SuperAdminSidebar: Client-only rendering, content expanded =', expandedSections.content)
 
   return (
     <div className='p-6 bg-superadmin-800 text-white h-screen flex flex-col w-72 bg-gray-700'>
@@ -88,7 +106,7 @@ const SuperAdminSidebar = () => {
         <nav className='flex flex-col space-y-1 pr-2'>
           <Link
             href='/superadmin'
-            className='bg-superadmin-700 text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium'
+            {...getLinkClasses('/superadmin', 'bg-superadmin-700 text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium')}
           >
             <FaTachometerAlt className='text-lg' />
             <span>Dashboard</span>
@@ -113,7 +131,7 @@ const SuperAdminSidebar = () => {
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
                   href='/superadmin/administration/adminUsers'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/administration/adminUsers', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaUsers className='mr-1 text-sm' />
                   <span>Admin Users</span>
@@ -121,14 +139,14 @@ const SuperAdminSidebar = () => {
 
                 <Link
                   href='/superadmin/administration/profile'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/administration/profile', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaUsers className='mr-1 text-sm' />
                   <span>Super Admin Profile</span>
                 </Link>
                 <Link
                   href='/superadmin/administration/roles-permissions'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/administration/roles-permissions', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaShieldAlt className='mr-1 text-sm' />
                   <span>Roles & Permissions</span>
@@ -156,7 +174,7 @@ const SuperAdminSidebar = () => {
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
                   href='/superadmin/content/category'
-                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                  {...getLinkClasses('/superadmin/content/category', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
                 >
                   <span className='flex items-center'>
                     <FaLayerGroup className='mr-2 text-sm' />
@@ -165,7 +183,7 @@ const SuperAdminSidebar = () => {
                 </Link>
                 <Link
                   href='/superadmin/content/product'
-                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                  {...getLinkClasses('/superadmin/content/product', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
                 >
                   <span className='flex items-center'>
                     <FaProductHunt className='mr-2 text-sm' />
@@ -173,9 +191,9 @@ const SuperAdminSidebar = () => {
                   </span>
                 </Link>
 
-                 <Link
+                <Link
                   href='/superadmin/content/banners'
-                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                  {...getLinkClasses('/superadmin/content/banners', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
                 >
                   <div className='flex items-center space-x-2'>
                     <FaImage className='text-sm' />
@@ -184,8 +202,18 @@ const SuperAdminSidebar = () => {
                 </Link>
 
                 <Link
+                  href='/superadmin/content/scraper'
+                  {...getLinkClasses('/superadmin/content/scraper', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
+                >
+                  <div className='flex items-center space-x-2'>
+                    <FaDownload className='text-sm' />
+                    <span>Product Scraper</span>
+                  </div>
+                </Link>
+
+                <Link
                   href='/superadmin/content/blogs'
-                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                  {...getLinkClasses('/superadmin/content/blogs', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
                 >
                   <span className='flex items-center'>
                     <FaFileAlt className='mr-2 text-sm' />
@@ -194,7 +222,7 @@ const SuperAdminSidebar = () => {
                 </Link>
                 <Link
                   href='/superadmin/content/featured-products'
-                  className='block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150'
+                  {...getLinkClasses('/superadmin/content/featured-products', 'block py-2 px-3 rounded hover:bg-superadmin-700 text-superadmin-200 font-medium transition-colors duration-150')}
                 >
                   <div className='flex items-center space-x-2'>
                     <FaStar className='text-sm' />
@@ -210,7 +238,7 @@ const SuperAdminSidebar = () => {
           {/* Orders & Payments */}
           <Link
             href='/superadmin/administration/OrdersDashboard'
-            className='text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium'
+            {...getLinkClasses('/superadmin/administration/OrdersDashboard', 'text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium')}
           >
             <FaShoppingCart className='text-lg' />
             <span>Orders & Payments</span>
@@ -235,21 +263,21 @@ const SuperAdminSidebar = () => {
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
                   href='/superadmin/analytics'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/analytics', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaMoneyBillWave className='mr-1 text-sm' />
                   <span>Sales Reports</span>
                 </Link>
                 <Link
                   href='/superadmin/analytics/users'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/analytics/users', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaUsers className='mr-1 text-sm' />
                   <span>User Analytics</span>
                 </Link>
                 <Link
                   href='/superadmin/analytics/performance'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/analytics/performance', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaTachometerAlt className='mr-1 text-sm' />
                   <span>Performance Metrics</span>
@@ -277,14 +305,14 @@ const SuperAdminSidebar = () => {
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
                   href='/superadmin/marketing'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/marketing', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaBullhorn className='mr-1 text-sm' />
                   <span>Campaigns</span>
                 </Link>
                 <Link
                   href='/superadmin/marketing/promotions'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/marketing/promotions', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaTags className='mr-1 text-sm' />
                   <span>Promotions</span>
@@ -312,28 +340,28 @@ const SuperAdminSidebar = () => {
               <div className='ml-9 space-y-1 mt-1'>
                 <Link
                   href='/superadmin/system/system-dashboard'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/system-dashboard', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaChartLine className='mr-1 text-sm' />
                   <span>System Dashboard</span>
                 </Link>
                 <Link
                   href='/superadmin/system/settings'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/settings', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaCog className='mr-1 text-sm' />
                   <span>System Settings</span>
                 </Link>
                 <Link
                   href='/superadmin/system/database'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/database', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaDatabase className='mr-1 text-sm' />
                   <span>Database Management</span>
                 </Link>
                 <Link
                   href='/superadmin/system/audit-logs'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/audit-logs', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaFileAlt className='mr-1 text-sm' />
                   <span>Audit Logs</span>
@@ -341,21 +369,21 @@ const SuperAdminSidebar = () => {
 
                 <Link
                   href='/superadmin/system/notifications'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/notifications', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaShieldAlt className='mr-1 text-sm' />
                   <span>Security Center</span>
                 </Link>
                 <Link
                   href='/superadmin/system/api'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/api', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaNetworkWired className='mr-1 text-sm' />
                   <span>API Management</span>
                 </Link>
                 <Link
                   href='/superadmin/system/backups'
-                  className='text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm'
+                  {...getLinkClasses('/superadmin/system/backups', 'text-superadmin-200 hover:bg-superadmin-600 hover:text-white py-2 px-3 rounded-md flex items-center space-x-2 text-sm')}
                 >
                   <FaServer className='mr-1 text-sm' />
                   <span>Backups</span>
@@ -366,7 +394,7 @@ const SuperAdminSidebar = () => {
           {/* Documentation */}
           <Link
             href='/superadmin/documentation'
-            className='text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium'
+            {...getLinkClasses('/superadmin/documentation', 'text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium')}
           >
             <FaFileAlt className='text-lg' />
             <span>Documentation</span>
@@ -374,7 +402,7 @@ const SuperAdminSidebar = () => {
           {/* Support */}
           <Link
             href='/superadmin/support'
-            className='text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium'
+            {...getLinkClasses('/superadmin/support', 'text-superadmin-200 hover:bg-superadmin-700 hover:text-white py-3 px-4 rounded-md flex items-center space-x-3 font-medium')}
           >
             <FaHeadset className='text-lg' />
             <span>Support Center</span>

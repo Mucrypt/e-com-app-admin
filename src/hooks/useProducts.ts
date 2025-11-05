@@ -190,7 +190,7 @@ export function useProducts(options: UseProductsOptions = {}) {
     if (limit) params.append('limit', limit.toString())
     if (sortBy) params.append('sortBy', sortBy)
     if (order) params.append('order', order)
-    if (includeInactive) params.append('include_inactive', 'true')
+    if (includeInactive) params.append('includeInactive', 'true')
 
     return `/api/products?${params.toString()}`
   }, [featured, category, limit, sortBy, order, includeInactive])
@@ -330,7 +330,7 @@ export function useProducts(options: UseProductsOptions = {}) {
         nextPageParams.append('limit', (limit + 12).toString())
         if (sortBy) nextPageParams.append('sortBy', sortBy)
         if (order) nextPageParams.append('order', order)
-        if (includeInactive) nextPageParams.append('include_inactive', 'true')
+        if (includeInactive) nextPageParams.append('includeInactive', 'true')
 
         const nextPageUrl = `/api/products?${nextPageParams.toString()}`
 

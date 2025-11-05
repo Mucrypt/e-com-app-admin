@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/server'
 
+// Create a typed version for banners to avoid TypeScript issues
+async function createPermissiveClient() {
+  const client = await createClient()
+  return client as any
+}
+
 // GET: Fetch a single banner for admin
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const bannerId = params.id
+    const supabase = await createPermissiveClient()
+    const { id: bannerId } = await params
 
     if (!bannerId) {
       return NextResponse.json({ error: 'Banner ID is required' }, { status: 400 })
@@ -44,18 +50,73 @@ export async function GET(
 // PATCH: Update a banner
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const bannerId = params.id
+    const supabase = await createPermissiveClient()
+    const { id: bannerId } = await params
     const body = await request.json()
 
     if (!bannerId) {
       return NextResponse.json({ error: 'Banner ID is required' }, { status: 400 })
     }
 
-    // Validate required fields
+    // If it's a status-only update (from the toggle switch)
+    if (body.is_active !== undefined && Object.keys(body).length === 1) {
+      const updateData = {
+        is_active: body.is_active,
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: banner, error } = await supabase
+        .from('banners')
+        .update(updateData)
+        .eq('id', bannerId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Error updating banner status:', error)
+        return NextResponse.json({ error: 'Failed to update banner status' }, { status: 500 })
+      }
+
+      if (!banner) {
+        return NextResponse.json({ error: 'Banner not found' }, { status: 404 })
+      }
+
+      console.log('✅ Banner status updated successfully:', banner.title, 'Active:', banner.is_active)
+      return NextResponse.json(banner)
+    }
+
+    // If it's a placement-only update (from the placement dropdown)
+    if (body.placement !== undefined && Object.keys(body).length <= 2) {
+      const updateData = {
+        placement: body.placement,
+        placement_priority: body.placement_priority || 1,
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: banner, error } = await supabase
+        .from('banners')
+        .update(updateData)
+        .eq('id', bannerId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('❌ Error updating banner placement:', error)
+        return NextResponse.json({ error: 'Failed to update banner placement' }, { status: 500 })
+      }
+
+      if (!banner) {
+        return NextResponse.json({ error: 'Banner not found' }, { status: 404 })
+      }
+
+      console.log('✅ Banner placement updated successfully:', banner.title)
+      return NextResponse.json(banner)
+    }
+
+    // Full banner update
     if (!body.title?.trim()) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
@@ -75,6 +136,8 @@ export async function PATCH(
       gradient_to: body.gradient_to?.trim() || null,
       position: body.position || 'center',
       banner_type: body.banner_type || null,
+      placement: body.placement || null,
+      placement_priority: body.placement_priority || null,
       start_date: body.start_date || null,
       end_date: body.end_date || null,
       priority: parseInt(body.priority) || 5,
@@ -117,11 +180,11 @@ export async function PATCH(
 // DELETE: Delete a banner
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const bannerId = params.id
+    const supabase = await createPermissiveClient()
+    const { id: bannerId } = await params
 
     if (!bannerId) {
       return NextResponse.json({ error: 'Banner ID is required' }, { status: 400 })

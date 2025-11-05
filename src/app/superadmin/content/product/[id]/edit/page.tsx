@@ -8,13 +8,13 @@ import {
   FaBarcode,
   FaWarehouse,
   FaWeight,
-  FaRuler,
   FaCheck,
   FaExclamationTriangle,
   FaCalendarAlt,
 } from 'react-icons/fa'
 import { uploadImageToCloudinary } from '@/lib/cloudinary'
 import { useCategories } from '@/hooks/useCategories'
+import { useProductsCache } from '@/hooks/useProducts'
 import Image from 'next/image'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,32 +23,23 @@ export default function EditProductPage() {
   const router = useRouter()
   const params = useParams()
   const { categories } = useCategories()
+  const { invalidate: invalidateProductsCache } = useProductsCache()
 
   const [form, setForm] = useState({
     id: '',
     name: '',
     description: '',
     price: 0,
-    cost_price: 0,
     image_url: '',
     images: [] as string[],
     category_id: '',
     is_active: true,
     stock: 0,
     sku: '',
-    barcode: '',
-    color: '',
-    size: '',
     brand: '',
     weight: 0,
-    dimensions: {
-      length: 0,
-      width: 0,
-      height: 0,
-    },
     meta_title: '',
     meta_description: '',
-    seo_keywords: '',
     is_featured: false,
     is_on_sale: false,
     original_price: 0,
@@ -56,8 +47,8 @@ export default function EditProductPage() {
     sale_ends_at: '',
   })
 
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -77,35 +68,28 @@ export default function EditProductPage() {
               name: data.name,
               description: data.description || '',
               price: data.price || 0,
-              cost_price: data.cost_price || 0,
               image_url: data.image_url || '',
               images: data.images || [],
               category_id: data.category_id || '',
               is_active: data.is_active,
               stock: data.stock || 0,
               sku: data.sku || '',
-              barcode: data.barcode || '',
-              color: data.color || '',
-              size: data.size || '',
               brand: data.brand || '',
               weight: data.weight || 0,
-              dimensions: data.dimensions || {
-                length: 0,
-                width: 0,
-                height: 0,
-              },
               meta_title: data.meta_title || '',
               meta_description: data.meta_description || '',
-              seo_keywords: data.seo_keywords || '',
               is_featured: data.is_featured || false,
               is_on_sale: data.is_on_sale || false,
               original_price: data.original_price || 0,
               sale_starts_at: data.sale_starts_at || '',
               sale_ends_at: data.sale_ends_at || '',
             })
-            if (data.image_url) {
-              setImagePreview(data.image_url)
-            }
+            // Set image previews from existing images
+            const existingImages = [
+              ...(data.images || []),
+              ...(data.image_url ? [data.image_url] : [])
+            ].filter(Boolean)
+            setImagePreviews(existingImages)
             setError('')
           } else {
             setError(data.error || 'Error fetching product')
@@ -142,38 +126,52 @@ export default function EditProductPage() {
     }))
   }
 
-  const handleDimensionChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    dimension: 'length' | 'width' | 'height'
-  ) => {
-    setForm((prev) => ({
-      ...prev,
-      dimensions: {
-        ...prev.dimensions,
-        [dimension]: parseFloat(e.target.value) || 0,
-      },
-    }))
-  }
-
-  // Image upload preview
+  // Multiple image upload handling
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      if (file.size > 2 * 1024 * 1024) {
-        setError('Image size should be less than 2MB')
-        return
-      }
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result as string)
-      reader.readAsDataURL(file)
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      const validFiles: File[] = []
+      const newPreviews: string[] = []
+
+      files.forEach(file => {
+        if (file.size > 2 * 1024 * 1024) {
+          setError(`Image ${file.name} is too large. Maximum size is 2MB.`)
+          return
+        }
+        validFiles.push(file)
+        
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          newPreviews.push(reader.result as string)
+          if (newPreviews.length === validFiles.length) {
+            setImagePreviews(prev => [...prev, ...newPreviews])
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+
+      setImageFiles(prev => [...prev, ...validFiles])
     }
   }
 
-  const removeImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-    setForm((prev) => ({ ...prev, image_url: '' }))
+  const removeImage = (index: number) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setImageFiles(prev => prev.filter((_, i) => i !== index))
+    
+    // Update form images array
+    setForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+      image_url: index === 0 ? (prev.images[1] || '') : prev.image_url
+    }))
+  }
+
+  const setMainImage = (index: number) => {
+    const mainImageUrl = imagePreviews[index]
+    setForm(prev => ({
+      ...prev,
+      image_url: mainImageUrl
+    }))
   }
 
   // Submit handler
@@ -181,40 +179,51 @@ export default function EditProductPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    let imageUrl = form.image_url
-
+    
     try {
-      if (imageFile) {
-        imageUrl = await uploadImageToCloudinary(imageFile)
+      // Upload new images to Cloudinary
+      const uploadedImageUrls: string[] = []
+      for (const file of imageFiles) {
+        try {
+          const url = await uploadImageToCloudinary(file)
+          uploadedImageUrls.push(url)
+        } catch (err) {
+          console.error('Failed to upload image:', err)
+          if (err instanceof Error && err.message.includes('Cloudinary is not configured')) {
+            setError('Cloudinary is not configured. Please set up your Cloudinary credentials in environment variables.')
+          } else {
+            setError(`Failed to upload image: ${file.name}. ${err instanceof Error ? err.message : 'Unknown error'}`)
+          }
+          setLoading(false)
+          return
+        }
       }
 
-      // Prepare product data
+      // Combine existing images with newly uploaded ones
+      const existingImages = imagePreviews.filter(url => !url.startsWith('data:'))
+      const allImages = [...existingImages, ...uploadedImageUrls]
+      
+      // Set main image (first image or existing image_url)
+      const mainImageUrl = form.image_url || allImages[0] || ''
+
+      // Prepare product data (excluding fields not in database schema)
       const product = {
         id: form.id,
         name: form.name,
         description: form.description,
         price: form.price,
-        cost_price: form.cost_price,
-        image_url: imageUrl,
-        images: form.images,
+        image_url: mainImageUrl,
+        images: allImages,
         category_id: form.category_id || null,
         is_active: form.is_active,
-        stock: form.stock,
+        stock_quantity: form.stock, // Map stock to stock_quantity
         sku: form.sku,
-        barcode: form.barcode,
-        color: form.color,
-        size: form.size,
         brand: form.brand,
         weight: form.weight,
-        dimensions: form.dimensions,
         meta_title: form.meta_title,
         meta_description: form.meta_description,
-        seo_keywords: form.seo_keywords,
         is_featured: form.is_featured,
-        is_on_sale: form.is_on_sale,
         original_price: form.original_price,
-        sale_starts_at: form.sale_starts_at,
-        sale_ends_at: form.sale_ends_at,
         updated_at: new Date().toISOString(),
       }
 
@@ -226,6 +235,9 @@ export default function EditProductPage() {
       })
 
       if (!res.ok) throw new Error('Failed to update product')
+
+      // Invalidate products cache to refresh the list
+      invalidateProductsCache('products')
 
       setLoading(false)
       setSuccess('Product updated successfully!')
@@ -415,27 +427,6 @@ export default function EditProductPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                      Cost Price
-                    </label>
-                    <div className='relative'>
-                      <span className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500'>
-                        $
-                      </span>
-                      <input
-                        title='Enter the product cost price'
-                        name='cost_price'
-                        type='number'
-                        step='0.01'
-                        min='0'
-                        value={form.cost_price}
-                        onChange={handleChange}
-                        className='w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                      />
-                    </div>
-                  </div>
-
                   <div className='flex items-center space-x-4'>
                     <div className='flex items-center'>
                       <input
@@ -592,19 +583,6 @@ export default function EditProductPage() {
 
                   <div>
                     <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                      Barcode
-                    </label>
-                    <input
-                      name='barcode'
-                      value={form.barcode}
-                      onChange={handleChange}
-                      placeholder='e.g. 123456789012'
-                      className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
                       Brand
                     </label>
                     <input
@@ -612,32 +590,6 @@ export default function EditProductPage() {
                       value={form.brand}
                       onChange={handleChange}
                       placeholder='e.g. Sony, Nike, Apple'
-                      className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                      Color
-                    </label>
-                    <input
-                      name='color'
-                      value={form.color}
-                      onChange={handleChange}
-                      placeholder='e.g. Black, Red, Blue'
-                      className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                      Size
-                    </label>
-                    <input
-                      name='size'
-                      value={form.size}
-                      onChange={handleChange}
-                      placeholder='e.g. S, M, L, XL'
                       className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
                     />
                   </div>
@@ -680,116 +632,91 @@ export default function EditProductPage() {
                       />
                     </div>
                   </div>
+                </div>
 
+                <div className='space-y-6 col-span-2'>
                   <div>
-                    <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-                      Dimensions (cm)
-                    </h3>
-                    <div className='grid grid-cols-3 gap-3'>
-                      <div>
-                        <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
-                          Length
-                        </label>
-                        <div className='relative'>
-                          <FaRuler className='absolute left-3 top-3 text-gray-400' />
-                          <input
-                            title='Enter the product length'
-                            type='number'
-                            step='0.1'
-                            min='0'
-                            value={form.dimensions.length}
-                            onChange={(e) => handleDimensionChange(e, 'length')}
-                            className='w-full pl-10 pr-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm'
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
-                          Width
-                        </label>
-                        <div className='relative'>
-                          <FaRuler className='absolute left-3 top-3 text-gray-400' />
-                          <input
-                            title='Enter the product width'
-                            type='number'
-                            step='0.1'
-                            min='0'
-                            value={form.dimensions.width}
-                            onChange={(e) => handleDimensionChange(e, 'width')}
-                            className='w-full pl-10 pr-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm'
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className='block text-xs text-gray-500 dark:text-gray-400 mb-1'>
-                          Height
-                        </label>
-                        <div className='relative'>
-                          <FaRuler className='absolute left-3 top-3 text-gray-400' />
-                          <input
-                            title='Enter the product height'
-                            type='number'
-                            step='0.1'
-                            min='0'
-                            value={form.dimensions.height}
-                            onChange={(e) => handleDimensionChange(e, 'height')}
-                            className='w-full pl-10 pr-2 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white text-sm'
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                      Product Image
+                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+                      Product Images
                     </label>
+                    
+                    {/* Existing Images Grid */}
+                    {imagePreviews.length > 0 && (
+                      <div className='mb-4'>
+                        <h4 className='text-sm font-medium text-gray-600 dark:text-gray-400 mb-2'>
+                          Current Images ({imagePreviews.length})
+                        </h4>
+                        <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                          {imagePreviews.map((preview, index) => (
+                            <div key={index} className='relative group'>
+                              <Image
+                                src={preview}
+                                alt={`Product image ${index + 1}`}
+                                width={150}
+                                height={150}
+                                className='w-full h-32 object-cover rounded-lg shadow-md'
+                              />
+                              
+                              {/* Image Actions */}
+                              <div className='absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2'>
+                                <button
+                                  type='button'
+                                  onClick={() => setMainImage(index)}
+                                  className='px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors'
+                                  title='Set as main image'
+                                >
+                                  Main
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => removeImage(index)}
+                                  className='px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors'
+                                  title='Remove image'
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              
+                              {/* Main Image Indicator */}
+                              {form.image_url === preview && (
+                                <div className='absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded'>
+                                  Main
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Upload New Images */}
                     <div className='mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg'>
                       <div className='space-y-1 text-center'>
-                        {imagePreview ? (
-                          <div className='relative'>
-                            <Image
-                              src={imagePreview}
-                              alt='Product preview'
-                              width={192}
-                              height={192}
-                              className='mx-auto h-48 w-48 object-cover rounded-lg shadow-md'
+                        <FaCloudUploadAlt className='mx-auto h-12 w-12 text-gray-400' />
+                        <div className='flex text-sm text-gray-600 dark:text-gray-400'>
+                          <label
+                            htmlFor='product-images'
+                            className='relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none'
+                          >
+                            <span>Upload images</span>
+                            <input
+                              id='product-images'
+                              name='product-images'
+                              type='file'
+                              accept='image/*'
+                              multiple
+                              onChange={handleImageChange}
+                              className='sr-only'
                             />
-                            <button
-                              type='button'
-                              onClick={removeImage}
-                              className='absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 -mt-2 -mr-2 shadow-lg hover:bg-red-600 transition-colors'
-                              aria-label='Remove image'
-                            >
-                              <FaTimes className='h-4 w-4' />
-                              <span className='sr-only'>Remove image</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <FaCloudUploadAlt className='mx-auto h-12 w-12 text-gray-400' />
-                            <div className='flex text-sm text-gray-600 dark:text-gray-400'>
-                              <label
-                                htmlFor='product-image'
-                                className='relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 focus-within:outline-none'
-                              >
-                                <span>Upload a file</span>
-                                <input
-                                  id='product-image'
-                                  name='product-image'
-                                  type='file'
-                                  accept='image/*'
-                                  onChange={handleImageChange}
-                                  className='sr-only'
-                                />
-                              </label>
-                              <p className='pl-1'>or drag and drop</p>
-                            </div>
-                            <p className='text-xs text-gray-500 dark:text-gray-400'>
-                              PNG, JPG, GIF up to 2MB
-                            </p>
-                          </>
-                        )}
+                          </label>
+                          <p className='pl-1'>or drag and drop</p>
+                        </div>
+                        <p className='text-xs text-gray-500 dark:text-gray-400'>
+                          PNG, JPG, GIF up to 2MB each. Select multiple files.
+                        </p>
+                        <p className='text-xs text-gray-500 dark:text-gray-400'>
+                          First image will be set as main product image.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -841,22 +768,6 @@ export default function EditProductPage() {
                       {form.meta_description.length}/160 characters
                     </span>
                   </div>
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-                    SEO Keywords
-                  </label>
-                  <input
-                    name='seo_keywords'
-                    value={form.seo_keywords}
-                    onChange={handleChange}
-                    placeholder='Comma-separated keywords (e.g. headphones, audio, music)'
-                    className='w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white'
-                  />
-                  <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                    These help search engines understand your product content.
-                  </p>
                 </div>
               </div>
             </motion.div>

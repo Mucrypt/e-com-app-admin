@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
         }
 
         if (categoryData) {
-          query = query.eq('category_id', categoryData.id)
+          query = query.eq('category_id', (categoryData as any).id)
           console.log(
             '🏷️ API: Found category:',
-            categoryData.name,
+            (categoryData as any).name,
             'ID:',
-            categoryData.id
+            (categoryData as any).id
           )
         } else {
           console.log('❌ API: Category not found for slug:', category)
@@ -81,6 +81,9 @@ export async function GET(request: NextRequest) {
     if (!includeInactive) {
       query = query.eq('is_active', true)
     }
+
+    // Exclude soft-deleted products
+    query = query.or('is_deleted.is.null,is_deleted.eq.false')
 
     // Price range filter
     if (minPrice > 0) {
@@ -193,7 +196,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const userRole = profile?.role?.toLowerCase()
+    const userRole = (profile as any)?.role?.toLowerCase()
     if (userRole !== 'admin' && userRole !== 'superadmin') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },

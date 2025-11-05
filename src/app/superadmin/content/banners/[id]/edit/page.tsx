@@ -249,7 +249,7 @@ const EditBannerPage = () => {
 
   if (loading) {
     return (
-      <div className="overflow-y-auto max-h-[calc(100vh-200px)] bg-gray-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
           <FaSpinner className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Banner</h3>
@@ -294,7 +294,7 @@ const EditBannerPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className=" overflow-y-auto max-h-[calc(100vh-200px)]  bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

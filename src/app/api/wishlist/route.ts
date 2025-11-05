@@ -101,11 +101,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product ID is required' }, { status: 400 })
     }
 
-    // Check if product exists
+    // Check if product exists and is not deleted
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id, name, price')
       .eq('id', product_id)
+      .or('is_deleted.is.null,is_deleted.eq.false')
       .single()
 
     if (productError || !product) {
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
 
       if (collectionError || !defaultCollection) {
         // Create default collection
-        const { data: newCollection, error: createError } = await supabase
+        const { data: newCollection, error: createError } = await (supabase as any)
           .from('wishlist_collections')
           .insert({
             name: 'My Wishlist',
@@ -151,14 +152,14 @@ export async function POST(request: NextRequest) {
           console.error('Error creating default collection:', createError)
           return NextResponse.json({ error: 'Failed to create wishlist collection' }, { status: 500 })
         }
-        targetCollectionId = newCollection.id
+        targetCollectionId = (newCollection as any).id
       } else {
-        targetCollectionId = defaultCollection.id
+        targetCollectionId = (defaultCollection as any).id
       }
     }
 
     // Add item to wishlist
-    const { data: newItem, error: insertError } = await supabase
+    const { data: newItem, error: insertError } = await (supabase as any)
       .from('wishlist_items')
       .insert({
         user_id: user.id,
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
     const { data: itemWithDetails } = await supabase
       .from('wishlist_items_with_products')
       .select('*')
-      .eq('id', newItem.id)
+      .eq('id', (newItem as any).id)
       .single()
 
     return NextResponse.json({ 

@@ -14,9 +14,15 @@ import {
   FaWeight,
   FaRuler,
   FaStar,
+  FaImages,
+  FaExpand,
+  FaChevronLeft,
+  FaChevronRight,
 } from 'react-icons/fa'
 import Image from 'next/image'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
+import ProductImageGallery from '@/components/common/ProductImageGallery'
+import { getProductImages as parseProductImages } from '@/lib/image-utils'
 import { motion } from 'framer-motion'
 
 export default function ViewProductPage() {
@@ -30,7 +36,7 @@ export default function ViewProductPage() {
     price: number
     cost_price?: number
     image_url?: string
-    images?: string[]
+    images?: string[] | string // Can be JSON string or array
     category_id?: string
     is_active: boolean
     created_at: string
@@ -62,6 +68,16 @@ export default function ViewProductPage() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showImageGallery, setShowImageGallery] = useState(false)
+
+  // Get all product images including scraped images
+  const getAllProductImages = (): string[] => {
+    if (!product) return []
+    return parseProductImages(product)
+  }
+
+  const productImages = getAllProductImages()
+  const hasMultipleImages = productImages.length > 1
 
   // Fetch product data
   useEffect(() => {
@@ -175,7 +191,7 @@ export default function ViewProductPage() {
         {/* Header Section */}
         <div className='px-8 py-6 border-b border-gray-200 dark:border-gray-700'>
           <div className='flex items-start justify-between'>
-            <div>
+            <div className='flex-1'>
               <h1 className='text-3xl font-extrabold text-gray-900 dark:text-white'>
                 {product.name}
               </h1>
@@ -204,19 +220,56 @@ export default function ViewProductPage() {
                     On Sale
                   </span>
                 )}
+                {hasMultipleImages && (
+                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
+                    <FaImages className='mr-1' />
+                    {productImages.length} Images
+                  </span>
+                )}
               </div>
             </div>
 
-            {product.image_url && (
-              <div className='relative h-24 w-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700'>
-                <Image
-                  src={product.image_url}
-                  alt={product.name}
-                  fill
-                  className='object-cover'
-                />
-              </div>
-            )}
+            {/* Image Preview Section */}
+            <div className='ml-6'>
+              {productImages.length > 0 ? (
+                <div className='relative'>
+                  <div className='relative h-32 w-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group cursor-pointer'
+                       onClick={() => setShowImageGallery(true)}>
+                    <Image
+                      src={productImages[0]}
+                      alt={product.name}
+                      fill
+                      className='object-cover transition-transform duration-200 group-hover:scale-110'
+                      sizes='128px'
+                    />
+                    {hasMultipleImages && (
+                      <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center'>
+                        <div className='opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white'>
+                          <FaExpand className='w-6 h-6' />
+                        </div>
+                      </div>
+                    )}
+                    {hasMultipleImages && (
+                      <div className='absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full'>
+                        +{productImages.length - 1}
+                      </div>
+                    )}
+                  </div>
+                  {hasMultipleImages && (
+                    <button
+                      onClick={() => setShowImageGallery(true)}
+                      className='mt-2 w-full text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium'
+                    >
+                      View all {productImages.length} images
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className='h-32 w-32 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800'>
+                  <FaImages className='w-8 h-8 text-gray-400' />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -224,6 +277,83 @@ export default function ViewProductPage() {
         <div className='grid grid-cols-1 md:grid-cols-3 gap-8 p-8'>
           {/* Basic Information */}
           <div className='md:col-span-2 space-y-6'>
+            {/* Product Images Section */}
+            {productImages.length > 0 && (
+              <div>
+                <h2 className='text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center'>
+                  <FaImages className='mr-2' />
+                  Product Images ({productImages.length})
+                </h2>
+
+                <div className='bg-gray-50 dark:bg-gray-700 rounded-lg p-6'>
+                  {productImages.length === 1 ? (
+                    <div className='relative w-full h-64 rounded-lg overflow-hidden'>
+                      <Image
+                        src={productImages[0]}
+                        alt={product.name}
+                        fill
+                        className='object-cover'
+                        sizes='(max-width: 768px) 100vw, 66vw'
+                      />
+                    </div>
+                  ) : (
+                    <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                      {productImages.slice(0, 8).map((image, index) => (
+                        <div
+                          key={index}
+                          className='relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group cursor-pointer'
+                          onClick={() => setShowImageGallery(true)}
+                        >
+                          <Image
+                            src={image}
+                            alt={`${product.name} - Image ${index + 1}`}
+                            fill
+                            className='object-cover transition-transform duration-200 group-hover:scale-110'
+                            sizes='200px'
+                          />
+                          <div className='absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center'>
+                            <div className='opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-white'>
+                              <FaExpand className='w-4 h-4' />
+                            </div>
+                          </div>
+                          {index === 0 && (
+                            <div className='absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full'>
+                              Main
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {productImages.length > 8 && (
+                        <div
+                          className='relative aspect-square rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 flex items-center justify-center cursor-pointer group'
+                          onClick={() => setShowImageGallery(true)}
+                        >
+                          <div className='text-center'>
+                            <FaImages className='w-8 h-8 text-gray-400 dark:text-gray-300 mx-auto mb-2' />
+                            <span className='text-sm font-medium text-gray-600 dark:text-gray-300'>
+                              +{productImages.length - 8} more
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {productImages.length > 1 && (
+                    <div className='mt-4 text-center'>
+                      <button
+                        onClick={() => setShowImageGallery(true)}
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors'
+                      >
+                        <FaExpand className='mr-2' />
+                        View All Images ({productImages.length})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div>
               <h2 className='text-lg font-medium text-gray-900 dark:text-white mb-4'>
                 Product Details
@@ -273,17 +403,6 @@ export default function ViewProductPage() {
 
                   <div>
                     <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      Cost Price
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-900 dark:text-white'>
-                      {product.cost_price
-                        ? formatPrice(product.cost_price)
-                        : 'Not set'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
                       SKU
                     </h3>
                     <p className='mt-1 text-sm text-gray-900 dark:text-white flex items-center'>
@@ -294,45 +413,10 @@ export default function ViewProductPage() {
 
                   <div>
                     <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      Barcode
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-900 dark:text-white'>
-                      {product.barcode || 'Not set'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
                       Brand
                     </h3>
                     <p className='mt-1 text-sm text-gray-900 dark:text-white'>
                       {product.brand || 'Not set'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      Color
-                    </h3>
-                    <div className='mt-1 flex items-center'>
-                      {product.color && (
-                        <div
-                          className='h-6 w-6 rounded-full border border-gray-300 mr-2'
-                          style={{ backgroundColor: product.color }}
-                        ></div>
-                      )}
-                      <span className='text-sm text-gray-900 dark:text-white'>
-                        {product.color || 'Not set'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      Size
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-900 dark:text-white'>
-                      {product.size || 'Not set'}
                     </p>
                   </div>
                 </div>
@@ -364,20 +448,6 @@ export default function ViewProductPage() {
                     <p className='mt-1 text-sm text-gray-900 dark:text-white flex items-center'>
                       <FaWeight className='mr-1' />
                       {product.weight ? `${product.weight} kg` : 'Not set'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      Dimensions
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-900 dark:text-white flex items-center'>
-                      <FaRuler className='mr-1' />
-                      {product.dimensions
-                        ? `${product.dimensions.length || 0} × ${
-                            product.dimensions.width || 0
-                          } × ${product.dimensions.height || 0} cm`
-                        : 'Not set'}
                     </p>
                   </div>
                 </div>
@@ -432,15 +502,6 @@ export default function ViewProductPage() {
                     </h3>
                     <p className='mt-1 text-sm text-gray-900 dark:text-white'>
                       {product.meta_description || 'Not set'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className='text-sm font-medium text-gray-500 dark:text-gray-400'>
-                      SEO Keywords
-                    </h3>
-                    <p className='mt-1 text-sm text-gray-900 dark:text-white'>
-                      {product.seo_keywords || 'Not set'}
                     </p>
                   </div>
                 </div>
@@ -607,6 +668,41 @@ export default function ViewProductPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Image Gallery Modal */}
+      {showImageGallery && productImages.length > 0 && (
+        <div className='fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4'>
+          <div className='relative w-full max-w-6xl max-h-full'>
+            <div className='bg-white dark:bg-gray-800 rounded-lg overflow-hidden'>
+              <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
+                <h3 className='text-lg font-medium text-gray-900 dark:text-white'>
+                  Product Images ({productImages.length})
+                </h3>
+                <button
+                  onClick={() => setShowImageGallery(false)}
+                  className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors'
+                >
+                  <svg className='w-6 h-6' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                    <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className='p-6'>
+                <ProductImageGallery
+                  images={productImages}
+                  title={product.name}
+                  maxHeight="70vh"
+                  showThumbnails={true}
+                  showImageCount={true}
+                  autoPlay={false}
+                  allowManipulation={false}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

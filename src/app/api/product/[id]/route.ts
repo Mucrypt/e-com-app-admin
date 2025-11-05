@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/supabase/server'
+import { scrapingDbService } from '@/lib/scraping-database-service'
 
 export async function GET(
   request: Request,
@@ -36,9 +37,9 @@ export async function GET(
 
     // Add is_featured based on featured_products relationship
     const productWithFeatured = {
-      ...product,
+      ...(product as any),
       is_featured:
-        product.featured_products && product.featured_products.length > 0,
+        (product as any).featured_products && (product as any).featured_products.length > 0,
     }
 
     return NextResponse.json(productWithFeatured)
@@ -78,7 +79,7 @@ export async function PATCH(
       .eq('id', user.id)
       .single()
 
-    const userRole = profile?.role?.toLowerCase()
+    const userRole = (profile as any)?.role?.toLowerCase()
     if (userRole !== 'admin' && userRole !== 'superadmin') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
@@ -88,6 +89,23 @@ export async function PATCH(
 
     const updates = await request.json()
     console.log('Updating product:', id, 'with data:', updates)
+
+    // Define valid product update fields to prevent schema errors
+    const validProductFields = [
+      'name', 'description', 'short_description', 'price', 'original_price',
+      'image_url', 'images', 'brand', 'sku', 'weight', 'rating', 'review_count',
+      'is_active', 'in_stock', 'stock_quantity', 'category_id', 'tags',
+      'meta_title', 'meta_description', 'meta_keywords'
+    ]
+
+    // Filter out invalid fields
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([key]) => 
+        validProductFields.includes(key) || key === 'is_featured'
+      )
+    )
+
+    console.log('Filtered updates:', filteredUpdates)
 
     // Check if product exists
     const { data: existingProduct, error: checkError } = await supabase
@@ -107,11 +125,11 @@ export async function PATCH(
       )
     }
 
-    console.log('Found existing product:', existingProduct.name)
+    console.log('Found existing product:', (existingProduct as any).name)
 
     // Handle featured status using featured_products table
-    if ('is_featured' in updates) {
-      const shouldBeFeatured = updates.is_featured
+    if ('is_featured' in filteredUpdates) {
+      const shouldBeFeatured = filteredUpdates.is_featured
 
       // Check if already featured
       const { data: featuredRecord } = await supabase
@@ -129,7 +147,7 @@ export async function PATCH(
             sort_order: 999, // You can adjust this logic
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          })
+          } as any)
 
         if (featuredError) {
           console.error('Error adding to featured:', featuredError)
@@ -155,16 +173,16 @@ export async function PATCH(
       }
 
       // Remove is_featured from updates since we handle it separately
-      delete updates.is_featured
+      delete filteredUpdates.is_featured
     }
 
     // Update other product fields if any
-    let updatedProduct = existingProduct
-    if (Object.keys(updates).length > 0) {
-      const { data, error } = await supabase
+    let updatedProduct: any = existingProduct
+    if (Object.keys(filteredUpdates).length > 0) {
+      const { data, error } = await (supabase as any)
         .from('products')
         .update({
-          ...updates,
+          ...filteredUpdates,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -234,7 +252,7 @@ export async function PUT(
       .eq('id', user.id)
       .single()
 
-    const userRole = profile?.role?.toLowerCase()
+    const userRole = (profile as any)?.role?.toLowerCase()
     if (userRole !== 'admin' && userRole !== 'superadmin') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
@@ -244,11 +262,26 @@ export async function PUT(
 
     const updates = await request.json()
 
+    // Define valid product update fields to prevent schema errors
+    const validProductFields = [
+      'name', 'description', 'short_description', 'price', 'original_price',
+      'image_url', 'images', 'brand', 'sku', 'weight', 'rating', 'review_count',
+      'is_active', 'in_stock', 'stock_quantity', 'category_id', 'tags',
+      'meta_title', 'meta_description', 'meta_keywords'
+    ]
+
+    // Filter out invalid fields
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([key]) => validProductFields.includes(key))
+    )
+
+    console.log('PUT - Filtered updates:', filteredUpdates)
+
     // Update the product
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('products')
       .update({
-        ...updates,
+        ...filteredUpdates,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -298,7 +331,7 @@ export async function DELETE(
       .eq('id', user.id)
       .single()
 
-    const userRole = profile?.role?.toLowerCase()
+    const userRole = (profile as any)?.role?.toLowerCase()
     if (userRole !== 'admin' && userRole !== 'superadmin') {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
@@ -306,14 +339,11 @@ export async function DELETE(
       )
     }
 
-    // Soft delete the product
-    const { error } = await supabase
-      .from('products')
-      .update({
-        is_deleted: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
+    // Set up the scraping service with authenticated client
+    scrapingDbService.setSupabaseClient(supabase)
+
+    // Use the service to delete the product and clean up relationships
+    const { error } = await scrapingDbService.deleteProduct(id)
 
     if (error) {
       console.error('Product delete error:', error)

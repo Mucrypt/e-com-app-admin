@@ -30,27 +30,44 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
-    const active = searchParams.get('active') !== 'false'
+    const active = searchParams.get('active')
+    const placement = searchParams.get('placement')
+    const types = searchParams.get('types')
+
+    console.log('🔍 Banners API - Query params:', { limit, active, placement, types })
 
     const supabase = await createClient()
 
     let query = supabase.from('banners').select('*')
 
-    // Filter by active status
-    if (active) {
+    // Filter by active status if specified
+    if (active === 'true') {
       query = query.eq('is_active', true)
+    } else if (active === 'false') {
+      query = query.eq('is_active', false)
     }
 
-    // Check if banners are within their active date range
-    const now = new Date().toISOString()
-    query = query.or(`start_date.is.null,start_date.lte.${now}`)
-    query = query.or(`end_date.is.null,end_date.gte.${now}`)
+    // Filter by placement if specified
+    if (placement && placement !== 'all') {
+      query = query.eq('placement', placement)
+    }
+
+    // Filter by banner types if specified
+    if (types && types !== 'all') {
+      const typeArray = types.split(',').map(t => t.trim())
+      query = query.in('banner_type', typeArray)
+    }
 
     // Order by priority (desc) then sort_order (asc)
-    query = query.order('priority', { ascending: false })
-    query = query.order('sort_order', { ascending: true })
-    query = query.limit(limit)
+    query = query.order('priority', { ascending: false, nullsFirst: false })
+    query = query.order('sort_order', { ascending: true, nullsFirst: false })
+    
+    // Apply limit
+    if (limit > 0) {
+      query = query.limit(limit)
+    }
 
+    console.log('🔍 Executing query...')
     const { data: banners, error } = await query
 
     if (error) {
@@ -61,11 +78,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('✅ Fetched banners:', banners?.length || 0)
     return NextResponse.json(banners || [])
   } catch (error) {
     console.error('❌ Unexpected error in banners API:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : 'No details available'
+      },
       { status: 500 }
     )
   }

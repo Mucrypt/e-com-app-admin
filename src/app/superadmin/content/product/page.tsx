@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   FaSearch,
   FaEye,
@@ -12,6 +12,7 @@ import {
   FaImage,
   FaChevronLeft,
   FaChevronRight,
+  FaSync,
 } from 'react-icons/fa'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -19,6 +20,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts } from '@/hooks/useProducts'
 import { Tables } from '@/types/database.types'
+import { getProductImages, hasMultipleImages } from '@/lib/image-utils'
 
 // Use the database type instead of defining a local interface
 type Product = Tables<'products'> & {
@@ -28,6 +30,7 @@ type Product = Tables<'products'> & {
     slug: string
     color?: string
   }
+  images?: string[] | string // Handle both array and JSON string
 }
 
 interface UseProductsResult {
@@ -39,7 +42,38 @@ interface UseProductsResult {
 
 export default function SuperAdminProductPage() {
   const { products, loading, error, refetch } =
-    useProducts() as unknown as UseProductsResult
+    useProducts({ 
+      includeInactive: true, // Superadmin should see inactive products
+      limit: 50 // Higher limit for admin interface
+    }) as unknown as UseProductsResult
+
+  // Auto-refresh when page comes into focus (handles navigation back)
+  useEffect(() => {
+    const handleFocus = () => {
+      // Only refetch if we have a refetch function and we're not currently loading
+      if (refetch && !loading) {
+        console.log('Page focused, refreshing products...')
+        refetch()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+    
+    // Also trigger on page visibility change
+    const handleVisibilityChange = () => {
+      if (!document.hidden && refetch && !loading) {
+        console.log('Page became visible, refreshing products...')
+        refetch()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [refetch, loading])
 
   // State management
   const [search, setSearch] = useState('')
@@ -112,6 +146,14 @@ export default function SuperAdminProductPage() {
   const handleBulkAction = async () => {
     if (!bulkAction || selected.length === 0) return
 
+    // Confirm bulk delete
+    if (bulkAction === 'delete') {
+      const confirmed = confirm(
+        `Are you sure you want to delete ${selected.length} product(s)? This action cannot be undone.`
+      )
+      if (!confirmed) return
+    }
+
     try {
       setIsLoading(true)
       const res = await fetch('/api/product/bulk', {
@@ -123,13 +165,27 @@ export default function SuperAdminProductPage() {
         }),
       })
 
-      if (!res.ok) throw new Error('Bulk action failed')
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Bulk action failed')
+      }
+
+      const result = await res.json()
+      
+      // Show results
+      if (result.errors && result.errors.length > 0) {
+        console.warn('❌ Some operations failed:', result.errors)
+        alert(`Bulk ${bulkAction} completed with ${result.summary.successful} successful and ${result.summary.failed} failed operations.`)
+      } else {
+        console.log('✅ Bulk action completed successfully:', result.summary)
+      }
 
       if (refetch) refetch()
       setSelected([])
       setBulkAction('')
     } catch (err) {
-      console.error('Bulk action error:', err)
+      console.error('❌ Bulk action error:', err)
+      alert(`Bulk ${bulkAction} failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setIsLoading(false)
     }
@@ -148,21 +204,66 @@ export default function SuperAdminProductPage() {
     </span>
   )
 
-  // Product image component
-  const ProductImage = ({ image_url }: { image_url?: string | null }) =>
-    image_url ? (
-      <Image
-        src={image_url}
-        alt='Product'
-        width={40}
-        height={40}
-        className='rounded-lg object-cover'
-      />
-    ) : (
-      <div className='h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-400'>
-        <FaImage className='text-xl' />
+  // Enhanced product image component with gallery support
+  const ProductImage = ({ product }: { product: Product }) => {
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+    const productImages = getProductImages(product)
+    const hasMultiple = hasMultipleImages(product)
+
+    return (
+      <div className="relative h-10 w-10 rounded-lg overflow-hidden">
+        {productImages.length > 0 ? (
+          <>
+            <Image
+              src={productImages[selectedImageIndex]}
+              alt='Product'
+              width={40}
+              height={40}
+              className='rounded-lg object-cover'
+            />
+            {hasMultiple && (
+              <>
+                {/* Image counter badge */}
+                <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {productImages.length}
+                </div>
+                
+                {/* Navigation arrows on hover */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-between px-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImageIndex(prev => 
+                        prev === 0 ? productImages.length - 1 : prev - 1
+                      )
+                    }}
+                    className="text-white text-xs"
+                  >
+                    <FaChevronLeft />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedImageIndex(prev => 
+                        prev === productImages.length - 1 ? 0 : prev + 1
+                      )
+                    }}
+                    className="text-white text-xs"
+                  >
+                    <FaChevronRight />
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className='h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-400'>
+            <FaImage className='text-xl' />
+          </div>
+        )}
       </div>
     )
+  }
 
   // Format price
   const formatPrice = (price: number) => {
@@ -170,6 +271,33 @@ export default function SuperAdminProductPage() {
       style: 'currency',
       currency: 'USD',
     }).format(price)
+  }
+
+  // Delete product function
+  const deleteProduct = async (productId: string, productName: string) => {
+    try {
+      setIsLoading(true)
+      const res = await fetch(`/api/product/${productId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to delete product')
+      }
+
+      // Refresh the product list
+      if (refetch) refetch()
+      
+      // Show success message (optional)
+      console.log('✅ Product deleted successfully:', productName)
+    } catch (err) {
+      console.error('❌ Delete product error:', err)
+      alert(`Failed to delete "${productName}": ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -186,6 +314,15 @@ export default function SuperAdminProductPage() {
             </p>
           </div>
           <div className='flex flex-wrap gap-3'>
+            <button
+              onClick={() => refetch?.()}
+              disabled={loading}
+              className='flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-4 py-2.5 rounded-lg shadow-md transition-all duration-200'
+              title='Refresh products'
+            >
+              <FaSync className={`text-sm ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
             <Link href='/superadmin/content/product/create'>
               <button className='flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white px-4 py-2.5 rounded-lg shadow-md transition-all duration-200'>
                 <FaPlus className='text-sm' />
@@ -458,7 +595,7 @@ export default function SuperAdminProductPage() {
                         <td className='px-6 py-4'>
                           <div className='flex items-center'>
                             <div className='flex-shrink-0 h-10 w-10 mr-3'>
-                              <ProductImage image_url={prod.image_url} />
+                              <ProductImage product={prod} />
                             </div>
                             <div>
                               <div className='text-sm font-medium text-gray-900 dark:text-white'>
@@ -467,6 +604,12 @@ export default function SuperAdminProductPage() {
                               <div className='text-sm text-gray-500 dark:text-gray-400 line-clamp-1'>
                                 {prod.description || 'No description'}
                               </div>
+                              {/* Show image count for products with multiple images */}
+                              {hasMultipleImages(prod) && (
+                                <div className='text-xs text-blue-600 dark:text-blue-400 mt-1'>
+                                  📷 {getProductImages(prod).length} images
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -513,16 +656,21 @@ export default function SuperAdminProductPage() {
                               </button>
                             </Link>
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (
                                   confirm(
                                     `Are you sure you want to delete "${prod.name}"?`
                                   )
                                 ) {
-                                  // TODO: Implement delete functionality
+                                  await deleteProduct(prod.id, prod.name)
                                 }
                               }}
-                              className='text-red-600 hover:text-red-900 dark:hover:text-red-400 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30'
+                              disabled={isLoading}
+                              className={`p-1 rounded-full transition-colors ${
+                                isLoading
+                                  ? 'text-gray-400 cursor-not-allowed'
+                                  : 'text-red-600 hover:text-red-900 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30'
+                              }`}
                               title='Delete'
                             >
                               <FaTrash />

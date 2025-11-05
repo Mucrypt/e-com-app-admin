@@ -12,16 +12,28 @@ const BannerCard: React.FC<BannerCardProps> = ({ banner, onClick, className = ''
   const getBannerStyles = () => {
     const styles: React.CSSProperties = {}
 
-    if (banner.background_color) {
-      styles.backgroundColor = banner.background_color
-    }
-
-    if (banner.gradient_from && banner.gradient_to) {
-      styles.background = `linear-gradient(135deg, ${banner.gradient_from} 0%, ${banner.gradient_to} 100%)`
+    // If there's an image, use a subtle background
+    if (banner.image_url) {
+      styles.backgroundColor = banner.background_color || '#f8fafc'
+    } else {
+      // No image, create attractive gradients
+      if (banner.gradient_from && banner.gradient_to) {
+        styles.background = `linear-gradient(135deg, ${banner.gradient_from} 0%, ${banner.gradient_to} 100%)`
+      } else if (banner.background_color) {
+        // Create a sophisticated gradient from the background color
+        const color = banner.background_color
+        styles.background = `linear-gradient(135deg, ${color} 0%, ${color}dd 50%, ${color}aa 100%)`
+      } else {
+        // Default attractive gradient when no image
+        styles.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }
     }
 
     if (banner.text_color) {
       styles.color = banner.text_color
+    } else {
+      // Better text color defaults
+      styles.color = banner.image_url ? '#ffffff' : '#ffffff'
     }
 
     return styles
@@ -82,7 +94,8 @@ const BannerCard: React.FC<BannerCardProps> = ({ banner, onClick, className = ''
             className="w-full h-full object-cover hidden md:block"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+          {/* Lighter overlay for better image visibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20"></div>
         </div>
       )}
 
@@ -93,20 +106,20 @@ const BannerCard: React.FC<BannerCardProps> = ({ banner, onClick, className = ''
           {getBannerTypeBadge()}
 
           {/* Title */}
-          <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight">
+          <h3 className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-tight ${banner.image_url ? 'drop-shadow-lg' : ''}`}>
             {banner.title}
           </h3>
 
           {/* Subtitle */}
           {banner.subtitle && (
-            <h4 className="text-sm sm:text-base md:text-lg lg:text-xl font-medium opacity-90">
+            <h4 className={`text-sm sm:text-base md:text-lg lg:text-xl font-medium opacity-90 ${banner.image_url ? 'drop-shadow-md' : ''}`}>
               {banner.subtitle}
             </h4>
           )}
 
           {/* Description */}
           {banner.description && (
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg opacity-80 leading-relaxed line-clamp-2">
+            <p className={`text-xs sm:text-sm md:text-base lg:text-lg opacity-80 leading-relaxed line-clamp-2 ${banner.image_url ? 'drop-shadow-sm' : ''}`}>
               {banner.description}
             </p>
           )}

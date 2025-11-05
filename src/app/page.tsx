@@ -4,11 +4,11 @@ import Navbar from '@/components/common/Navbar'
 import Footer from '@/components/layout/Footer'
 import SponsorsBrands from '@/components/layout/SponsorsBrands'
 import HomePage from '@/components/common/HomePage'
-
+import PageWrapper from '@/components/common/PageWrapper'
 
 export default function Home() {
   return (
-    <>
+    <PageWrapper loadingMessage="Loading Mukulah platform...">
       <Topbar />
       <Navbar />
       <main>
@@ -21,6 +21,6 @@ export default function Home() {
         <SponsorsBrands />
       </main>
       <Footer />
-    </>
+    </PageWrapper>
   )
 }

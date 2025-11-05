@@ -99,24 +99,70 @@ const Footer = () => {
               Customer Service
             </h4>
             <ul className='space-y-3'>
-              {[
-                'Contact Us',
-                'FAQs',
-                'Shipping Policy',
-                'Returns & Exchanges',
-                'Order Tracking',
-                'Size Guide',
-                'Gift Cards',
-              ].map((item) => (
-                <li key={item}>
-                  <Link
-                    href='#'
-                    className='text-gray-400 hover:text-white transition-colors duration-300'
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href='/customer-service'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Customer Service
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/contact-us'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/faqs'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  FAQs
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/shipping-policy'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/returns-exchanges'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Returns & Exchanges
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/order-tracking'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Order Tracking
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/size-guide'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Size Guide
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/gift-cards'
+                  className='text-gray-400 hover:text-white transition-colors duration-300'
+                >
+                  Gift Cards
+                </Link>
+              </li>
             </ul>
           </div>
 

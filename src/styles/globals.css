@@ -19,8 +19,39 @@
   }
 }
 
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .animate-blob {
   animation: blob 7s infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-slide-fade-in {
+  animation: slide-fade-in 0.8s ease-out forwards;
 }
 
 .animation-delay-2000 {
@@ -551,4 +582,131 @@ img[data-nimg='fill'] {
 .responsive-modal {
   @apply fixed inset-0 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:transform lg:-translate-x-1/2 lg:-translate-y-1/2;
   @apply w-full h-full lg:w-auto lg:h-auto lg:max-w-lg lg:max-h-[90vh];
+}
+
+/* Category Page Banner Styles */
+.category-page-banners {
+  @apply relative overflow-hidden;
+}
+
+.category-page-banners .promotional-banner {
+  @apply rounded-xl shadow-lg border border-gray-200;
+  min-height: 200px;
+}
+
+.category-page-banners .promotional-banner:hover {
+  @apply shadow-2xl transform scale-[1.02];
+  transition: all 0.3s ease-in-out;
+}
+
+.category-specific-banners {
+  @apply bg-gradient-to-r from-gray-50 to-white rounded-xl p-1;
+}
+
+.category-specific-banners .promotional-banner {
+  @apply h-32 sm:h-40 rounded-lg shadow-md hover:shadow-lg;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Banner fade-in animation for category page */
+.category-page-banners,
+.category-specific-banners {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive banner heights for category page */
+@media (min-width: 768px) {
+  .category-page-banners .promotional-banner {
+    min-height: 250px;
+  }
+  
+  .category-specific-banners .promotional-banner {
+    @apply h-44;
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-page-banners .promotional-banner {
+    min-height: 300px;
+  }
+  
+  .category-specific-banners .promotional-banner {
+    @apply h-48;
+  }
+}
+
+/* Inline Product Banners */
+.inline-product-banners {
+  @apply bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-2;
+  border: 2px dashed #e5e7eb;
+}
+
+.inline-product-banners .promotional-banner {
+  @apply h-24 sm:h-32 rounded-lg shadow-sm hover:shadow-md;
+  transition: all 0.2s ease-in-out;
+}
+
+.inline-product-banners-list {
+  @apply bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-3;
+  border: 2px dashed #d1d5db;
+}
+
+.inline-product-banners-list .promotional-banner {
+  @apply h-20 sm:h-24 rounded-lg shadow-sm;
+}
+
+/* Hover effects for better engagement */
+.inline-product-banners:hover,
+.inline-product-banners-list:hover {
+  @apply shadow-lg;
+  transform: translateY(-2px);
+  transition: all 0.3s ease-in-out;
+}
+
+/* No Products Found Banners */
+.no-products-banners {
+  @apply bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 rounded-xl p-4;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.no-products-banners .promotional-banner {
+  @apply h-40 sm:h-48 rounded-lg shadow-md hover:shadow-xl;
+  transform: scale(0.98);
+  transition: all 0.3s ease-in-out;
+}
+
+.no-products-banners .promotional-banner:hover {
+  transform: scale(1);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom scrollbar styles */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
 }

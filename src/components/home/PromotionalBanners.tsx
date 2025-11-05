@@ -9,6 +9,7 @@ import BannerCard from './BannerCard'
 const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
   limit = 5,
   bannerTypes,
+  placement,
   className = '',
   showControls = true,
   autoPlay = true,
@@ -45,6 +46,10 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
           active: 'true',
         })
 
+        if (placement) {
+          params.append('placement', placement)
+        }
+
         if (bannerTypes && bannerTypes.length > 0) {
           params.append('types', bannerTypes.join(','))
         }
@@ -59,6 +64,8 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
         setBanners(Array.isArray(data) ? data : [])
         
         console.log('🎌 Fetched promotional banners:', data.length)
+        console.log('🎯 Placement filter:', placement)
+        console.log('📊 Banner details:', data.map((b: any) => ({ id: b.id, title: b.title, placement: b.placement })))
       } catch (err) {
         console.error('❌ Error fetching promotional banners:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch banners')
@@ -106,20 +113,44 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
     }
   }, [isVisible, banners, impressionsTracked])
 
-  // Auto-play functionality
+    // Reset current index when banners change
   useEffect(() => {
-    if (isAutoPlaying && banners.length > 1) {
-      autoPlayRef.current = setInterval(() => {
-        setCurrentIndex(prev => (prev + 1) % banners.length)
-      }, interval)
+    if (currentIndex >= banners.length) {
+      setCurrentIndex(0)
+    }
+  }, [banners.length, currentIndex])
 
-      return () => {
-        if (autoPlayRef.current) {
-          clearInterval(autoPlayRef.current)
-        }
+  // Auto-play functionality - simplified and reliable
+  useEffect(() => {
+    console.log('🔄 Autoplay effect triggered:', { isAutoPlaying, bannersLength: banners.length, currentIndex })
+    
+    if (!isAutoPlaying || banners.length <= 1) {
+      if (autoPlayRef.current) {
+        clearInterval(autoPlayRef.current)
+        autoPlayRef.current = null
+      }
+      console.log('⏹️ Autoplay stopped')
+      return
+    }
+
+    // Use setInterval for consistent timing
+    autoPlayRef.current = setInterval(() => {
+      setCurrentIndex(prev => {
+        const nextIndex = (prev + 1) % banners.length
+        console.log('➡️ Banner transition:', prev, '→', nextIndex)
+        return nextIndex
+      })
+    }, 5000) // Fixed 5-second interval for now
+
+    console.log('▶️ Autoplay started')
+
+    return () => {
+      if (autoPlayRef.current) {
+        clearInterval(autoPlayRef.current)
+        autoPlayRef.current = null
       }
     }
-  }, [isAutoPlaying, banners.length, interval])
+  }, [isAutoPlaying, banners.length])
 
   // Handle banner click
   const handleBannerClick = async (banner: Banner) => {
@@ -310,15 +341,23 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
         </div>
       )}
 
-      {/* Grid */}
+      {/* Grid with Staggered Animation */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {banners.map((banner) => (
-          <BannerCard
+        {banners.map((banner, index) => (
+          <div
             key={banner.id}
-            banner={banner}
-            onClick={handleBannerClick}
-            className="h-48 sm:h-56 md:h-64 lg:h-72"
-          />
+            className="animate-fade-in-up"
+            style={{
+              animationDelay: `${index * 100}ms`,
+              animationFillMode: 'backwards'
+            }}
+          >
+            <BannerCard
+              banner={banner}
+              onClick={handleBannerClick}
+              className="h-48 sm:h-56 md:h-64 lg:h-72 hover:transform hover:scale-105 transition-all duration-300"
+            />
+          </div>
         ))}
       </div>
     </div>
@@ -326,6 +365,31 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
 
   // Render featured layout (large + small banners)
   const renderFeaturedLayout = () => {
+    // If only one banner, show it without carousel
+    if (banners.length === 1) {
+      return (
+        <div className={`space-y-8 ${className}`}>
+          {/* Section Header */}
+          {showTitle && (
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">{title}</h2>
+              {subtitle && (
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
+              )}
+            </div>
+          )}
+
+          {/* Single Featured Banner */}
+          <BannerCard
+            banner={banners[0]}
+            onClick={handleBannerClick}
+            className="h-64 sm:h-80 md:h-96 lg:h-[400px]"
+          />
+        </div>
+      )
+    }
+
+    // Multiple banners - create carousel
     const [featured, ...others] = banners
     
     return (
@@ -340,19 +404,96 @@ const PromotionalBanners: React.FC<PromotionalBannersProps> = ({
           </div>
         )}
 
-        {/* Featured Banner */}
-        {featured && (
-          <BannerCard
-            banner={featured}
-            onClick={handleBannerClick}
-            className="h-64 sm:h-80 md:h-96 lg:h-[400px]"
-          />
-        )}
+        {/* Featured Banner Carousel */}
+        <div className="relative">
+          {/* Debug indicator - remove after testing */}
+          <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs z-20">
+            Current: {currentIndex + 1}/{banners.length} | Auto: {isAutoPlaying ? 'ON' : 'OFF'}
+          </div>
 
-        {/* Secondary Banners */}
-        {others.length > 0 && (
+          {/* Carousel Container */}
+          <div className="relative overflow-hidden rounded-2xl shadow-xl">
+            <div 
+              className="flex transition-transform duration-700 ease-in-out"
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+              {banners.map((banner, index) => (
+                <div key={banner.id} className="w-full flex-shrink-0">
+                  <BannerCard
+                    banner={banner}
+                    onClick={handleBannerClick}
+                    className="h-64 sm:h-80 md:h-96 lg:h-[400px] rounded-none"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Navigation Arrows */}
+            {showControls && banners.length > 1 && (
+              <>
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
+                  aria-label="Previous banner"
+                >
+                  <ChevronLeftIcon className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={goToNext}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
+                  aria-label="Next banner"
+                >
+                  <ChevronRightIcon className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            {/* Autoplay Control */}
+            {showControls && banners.length > 1 && (
+              <button
+                onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+                className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
+                aria-label={isAutoPlaying ? 'Pause slideshow' : 'Play slideshow'}
+              >
+                {isAutoPlaying ? (
+                  <PauseIcon className="w-5 h-5" />
+                ) : (
+                  <PlayIcon className="w-5 h-5" />
+                )}
+              </button>
+            )}
+
+            {/* Progress Indicators */}
+            {banners.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
+                {banners.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentIndex
+                        ? 'bg-white scale-125 shadow-lg'
+                        : 'bg-white/60 hover:bg-white/80'
+                    }`}
+                    aria-label={`Go to banner ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Banner Counter */}
+            {banners.length > 1 && (
+              <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium z-10">
+                {currentIndex + 1} / {banners.length}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Secondary Banners Grid (if more than 3 banners total) */}
+        {others.length > 0 && banners.length > 3 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {others.map((banner) => (
+            {others.slice(0, 3).map((banner) => (
               <BannerCard
                 key={banner.id}
                 banner={banner}
