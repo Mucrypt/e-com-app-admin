@@ -1,7 +1,7 @@
 // app/superadmin/content/blogs/create/page.tsx - WORLD CLASS MASTERPIECE
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { BlogService } from '@/lib/blog-service'
 import { CreateBlogData } from '@/types/blog'
@@ -169,7 +169,7 @@ const AIContentWizard = ({
   )
 }
 
-export default function CreateBlogPage() {
+function CreateBlogPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -202,7 +202,7 @@ export default function CreateBlogPage() {
   useEffect(() => {
     const content = searchParams?.get('content')
     if (content) {
-      setFormData((prev) => ({ ...prev, content: decodeURIComponent(content) }))
+      setFormData((prev: CreateBlogData) => ({ ...prev, content: decodeURIComponent(content) }))
     }
   }, [searchParams])
 
@@ -225,7 +225,7 @@ export default function CreateBlogPage() {
   }, [loading])
 
   const handleContentGenerated = (content: string, type: string) => {
-    setFormData((prev) => ({
+    setFormData((prev: CreateBlogData) => ({
       ...prev,
       [type]: type === 'content' ? prev.content + content : content,
     }))
@@ -239,7 +239,7 @@ export default function CreateBlogPage() {
     try {
       // Simulate upload progress
       const progressInterval = setInterval(() => {
-        setProgress((prev) => {
+        setProgress((prev: number) => {
           if (prev >= 90) {
             clearInterval(progressInterval)
             return 90
@@ -277,7 +277,7 @@ export default function CreateBlogPage() {
 
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags?.includes(tagInput.trim())) {
-      setFormData((prev) => ({
+      setFormData((prev: CreateBlogData) => ({
         ...prev,
         tags: [...(prev.tags || []), tagInput.trim()],
       }))
@@ -286,9 +286,9 @@ export default function CreateBlogPage() {
   }
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setFormData((prev) => ({
+    setFormData((prev: CreateBlogData) => ({
       ...prev,
-      tags: prev.tags?.filter((tag) => tag !== tagToRemove) || [],
+      tags: prev.tags?.filter((tag: string) => tag !== tagToRemove) || [],
     }))
   }
 
@@ -296,7 +296,7 @@ export default function CreateBlogPage() {
     // Simulate image upload
     const imageUrl =
       'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2072&q=80'
-    setFormData((prev) => ({ ...prev, featured_image_url: imageUrl }))
+    setFormData((prev: CreateBlogData) => ({ ...prev, featured_image_url: imageUrl }))
   }
 
   const containerClasses = {
@@ -491,7 +491,7 @@ export default function CreateBlogPage() {
                         <Input
                           value={formData.title}
                           onChange={(e) =>
-                            setFormData((prev) => ({
+                            setFormData((prev: CreateBlogData) => ({
                               ...prev,
                               title: e.target.value,
                             }))
@@ -510,7 +510,7 @@ export default function CreateBlogPage() {
                         <Textarea
                           value={formData.excerpt}
                           onChange={(e) =>
-                            setFormData((prev) => ({
+                            setFormData((prev: CreateBlogData) => ({
                               ...prev,
                               excerpt: e.target.value,
                             }))
@@ -535,8 +535,8 @@ export default function CreateBlogPage() {
                         </div>
                         <CosmicRichTextEditor
                           value={formData.content}
-                          onChange={(content) =>
-                            setFormData((prev) => ({ ...prev, content }))
+                          onChange={(content: string) =>
+                            setFormData((prev: CreateBlogData) => ({ ...prev, content }))
                           }
                           className='min-h-[600px]'
                         />
@@ -568,7 +568,7 @@ export default function CreateBlogPage() {
                         type='checkbox'
                         checked={formData.is_featured}
                         onChange={(e) =>
-                          setFormData((prev) => ({
+                          setFormData((prev: CreateBlogData) => ({
                             ...prev,
                             is_featured: e.target.checked,
                           }))
@@ -588,7 +588,7 @@ export default function CreateBlogPage() {
                         type='checkbox'
                         checked={formData.is_published}
                         onChange={(e) =>
-                          setFormData((prev) => ({
+                          setFormData((prev: CreateBlogData) => ({
                             ...prev,
                             is_published: e.target.checked,
                           }))
@@ -657,7 +657,7 @@ export default function CreateBlogPage() {
                       <select
                         value={formData.category}
                         onChange={(e) =>
-                          setFormData((prev) => ({
+                          setFormData((prev: CreateBlogData) => ({
                             ...prev,
                             category: e.target.value,
                           }))
@@ -683,7 +683,7 @@ export default function CreateBlogPage() {
                       <Input
                         value={formData.read_time}
                         onChange={(e) =>
-                          setFormData((prev) => ({
+                          setFormData((prev: CreateBlogData) => ({
                             ...prev,
                             read_time: e.target.value,
                           }))
@@ -720,7 +720,7 @@ export default function CreateBlogPage() {
                           </Button>
                         </div>
                         <div className='flex flex-wrap gap-2'>
-                          {formData.tags?.map((tag, index) => (
+                          {formData.tags?.map((tag: string, index: number) => (
                             <Badge
                               key={index}
                               variant='secondary'
@@ -771,7 +771,7 @@ export default function CreateBlogPage() {
                           size='sm'
                           className='w-full border-red-200 text-red-600 hover:bg-red-50 transition-colors'
                           onClick={() =>
-                            setFormData((prev) => ({
+                            setFormData((prev: CreateBlogData) => ({
                               ...prev,
                               featured_image_url: '',
                             }))
@@ -835,5 +835,13 @@ export default function CreateBlogPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function CreateBlogPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CreateBlogPageContent />
+    </Suspense>
   )
 }
