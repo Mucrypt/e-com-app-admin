@@ -3,7 +3,8 @@ import type { Configuration } from 'webpack'
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // Comment out standalone output temporarily to fix build issues
+  // output: 'standalone',
 
   experimental: {
     // Temporarily disable CSS optimization to fix build issues
